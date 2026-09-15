@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.EventNote
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.MenuBook
@@ -65,6 +66,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -91,6 +93,7 @@ fun MainDashboardScreen(
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     onNavigateToClassNotes: () -> Unit,
+    onNavigateToStudyPlanner: () -> Unit,
     onNavigateToCgpa: () -> Unit,
     onNavigateToAssignments: () -> Unit,
     onNavigateToExams: () -> Unit,
@@ -138,16 +141,16 @@ fun MainDashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        com.example.ui.components.ClassMateAppLogo(size = 40.dp)
+                        com.example.ui.components.ClassMateAppLogo(size = 36.dp)
                         Column {
                             Text(
                                 text = "ClassMate",
-                                style = MaterialTheme.typography.titleLarge,
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = "Student Productivity Suite",
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -230,8 +233,7 @@ fun MainDashboardScreen(
             AppBottomNavigationBar(
                 currentScreen = AppScreen.Home,
                 onNavigateToHome = { /* Already on Home */ },
-                onNavigateToNotes = onNavigateToClassNotes,
-                onNavigateToRoutine = onNavigateToRoutine,
+                onNavigateToStudyPlanner = onNavigateToStudyPlanner,
                 onNavigateToSettings = onNavigateToSettings
             )
         }
@@ -268,8 +270,8 @@ fun MainDashboardScreen(
                     .graphicsLayer {
                         translationY = animatedOffsetY
                     },
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
             // Quick Search Card
             item {
@@ -291,19 +293,19 @@ fun MainDashboardScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 13.dp),
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "Search Notes",
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = "Search notes by course, topic or caption...",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.5.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -312,43 +314,71 @@ fun MainDashboardScreen(
 
             // Academic Hub Section Header
             item {
-                Text(
-                    text = "Academic Workspace",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
-                )
+                Column(modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)) {
+                    Text(
+                        text = "Academic Workspace",
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(36.dp)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Color(0xFF29B6F6))
+                    )
+                }
             }
 
-            // Primary Top Hero Card: Class Notes & Photos
-            item {
-                HubCategoryCard(
-                    title = "Class Notes & Photos",
-                    subtitle = "$courseCount courses • Offline photo notes with zoom & rating",
-                    icon = Icons.Default.MenuBook,
-                    badgeText = "Core",
-                    gradientColors = listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.secondary
-                    ),
-                    testTag = "hub_class_notes_card",
-                    onClick = onNavigateToClassNotes
-                )
-            }
-
-            // 4 Grid Action Cards (2x2) with uniform height, rounded corners, and smooth tap
+            // 6 Grid Action Cards (2x3 Grid) matching user reference screenshot
+            // Row 1: Class Notes & Photos | Study Planner
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(11.dp)
+                ) {
+                    HubGridCard(
+                        title = "Class Notes &\nPhotos",
+                        subtitle = "$courseCount courses • Offline photo notes\nwith zoom & rating",
+                        icon = Icons.Default.MenuBook,
+                        iconBg = Brush.linearGradient(listOf(Color(0xFF00B4D8), Color(0xFF0077B6))),
+                        badgeText = "Core",
+                        chevronTint = Color(0xFF64B5F6),
+                        testTag = "hub_class_notes_card",
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateToClassNotes
+                    )
+
+                    HubGridCard(
+                        title = "Study Planner",
+                        subtitle = "Plan your study, track progress\n& stay on schedule",
+                        icon = Icons.Default.CalendarMonth,
+                        iconBg = Brush.linearGradient(listOf(Color(0xFFAB47BC), Color(0xFF7B1FA2))),
+                        chevronTint = Color(0xFFBA68C8),
+                        cardBackground = Brush.linearGradient(
+                            listOf(Color(0xFF0F172A), Color(0xFF1E1138))
+                        ),
+                        testTag = "hub_study_planner_card",
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateToStudyPlanner
+                    )
+                }
+            }
+
+            // Row 2: CGPA Calculator | Assignments
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(11.dp)
                 ) {
                     HubGridCard(
                         title = "CGPA Calculator",
-                        subtitle = "GPA & Records",
+                        subtitle = "Calculate your GPA &\nCGPA easily",
                         icon = Icons.Default.Calculate,
-                        iconBg = MaterialTheme.colorScheme.primaryContainer,
-                        iconTint = MaterialTheme.colorScheme.primary,
+                        iconBg = Brush.linearGradient(listOf(Color(0xFF00BCD4), Color(0xFF00838F))),
+                        chevronTint = Color(0xFF4DD0E1),
                         testTag = "hub_cgpa_card",
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateToCgpa
@@ -356,10 +386,10 @@ fun MainDashboardScreen(
 
                     HubGridCard(
                         title = "Assignments",
-                        subtitle = if (upcomingAssignmentCount > 0) "$upcomingAssignmentCount due" else "Tasks & Deadlines",
+                        subtitle = if (upcomingAssignmentCount > 0) "$upcomingAssignmentCount due soon\nTasks & deadlines" else "Manage tasks &\ndeadlines",
                         icon = Icons.Default.Assignment,
-                        iconBg = MaterialTheme.colorScheme.secondaryContainer,
-                        iconTint = MaterialTheme.colorScheme.secondary,
+                        iconBg = Brush.linearGradient(listOf(Color(0xFF00BFA5), Color(0xFF00796B))),
+                        chevronTint = Color(0xFF4DB6AC),
                         testTag = "hub_assignments_card",
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateToAssignments
@@ -367,17 +397,18 @@ fun MainDashboardScreen(
                 }
             }
 
+            // Row 3: Exams | Class Routine
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(11.dp)
                 ) {
                     HubGridCard(
                         title = "Exams",
-                        subtitle = if (upcomingExamCount > 0) "$upcomingExamCount scheduled" else "Dates & Reminders",
+                        subtitle = if (upcomingExamCount > 0) "$upcomingExamCount scheduled\nDates & reminders" else "Track exam dates &\nprepare better",
                         icon = Icons.Default.EventNote,
-                        iconBg = MaterialTheme.colorScheme.tertiaryContainer,
-                        iconTint = MaterialTheme.colorScheme.tertiary,
+                        iconBg = Brush.linearGradient(listOf(Color(0xFFFF9100), Color(0xFFE65100))),
+                        chevronTint = Color(0xFFFFB74D),
                         testTag = "hub_exams_card",
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateToExams
@@ -385,10 +416,10 @@ fun MainDashboardScreen(
 
                     HubGridCard(
                         title = "Class Routine",
-                        subtitle = "Weekly Timetable",
+                        subtitle = "Weekly Timetable &\nclass schedule",
                         icon = Icons.Default.CalendarMonth,
-                        iconBg = MaterialTheme.colorScheme.surfaceVariant,
-                        iconTint = MaterialTheme.colorScheme.primary,
+                        iconBg = Brush.linearGradient(listOf(Color(0xFF5C6BC0), Color(0xFF283593))),
+                        chevronTint = Color(0xFF7986CB),
                         testTag = "hub_routine_card",
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateToRoutine
@@ -404,14 +435,14 @@ fun MainDashboardScreen(
                         onSponsorClick = onSponsorClick,
                         onSponsorImpression = onSponsorImpression,
                         slideIntervalMillis = 4000L,
-                        modifier = Modifier.padding(top = 4.dp)
+                        modifier = Modifier.padding(top = 2.dp)
                     )
                 }
             }
 
             // Extra bottom spacer for smooth scrolling above bottom bar
             item {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(6.dp))
             }
         }
 
@@ -573,61 +604,120 @@ fun HubGridCard(
     title: String,
     subtitle: String,
     icon: ImageVector,
-    iconBg: Color,
-    iconTint: Color,
+    iconBg: Brush,
+    iconTint: Color = Color.White,
     testTag: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    badgeText: String? = null,
+    chevronTint: Color = Color(0xFF64B5F6),
+    cardBackground: Brush? = null
 ) {
     Card(
         modifier = modifier
-            .height(132.dp)
+            .height(126.dp)
             .clip(RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
             .testTag(testTag),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
         border = BorderStroke(
             width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            color = Color(0xFF1E293B)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .then(
+                    if (cardBackground != null) Modifier.background(cardBackground)
+                    else Modifier
+                )
+                .padding(horizontal = 13.dp, vertical = 11.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(iconBg),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
+                // Top Row: Icon + Badge (if any)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(iconBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
 
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
+                    if (badgeText != null) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF1976D2)
+                        ) {
+                            Text(
+                                text = badgeText,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Bottom Section: Title with Chevron & Subtitle
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                lineHeight = 16.sp
+                            ),
+                            color = Color.White,
+                            maxLines = 2,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = chevronTint,
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
+
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 10.sp,
+                            lineHeight = 13.sp
+                        ),
+                        color = Color(0xFF94A3B8),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }

@@ -213,4 +213,72 @@ class ClassNotesRepository(
     suspend fun clearCachedSponsors() = withContext(Dispatchers.IO) {
         dao.clearCachedSponsors()
     }
+
+    // Study Plans
+    val allStudyPlans: Flow<List<StudyPlan>> = dao.getAllStudyPlans()
+
+    fun getStudyPlanById(id: Long): Flow<StudyPlan?> = dao.getStudyPlanById(id)
+
+    fun getTasksForPlan(planId: Long): Flow<List<StudyPlanTask>> = dao.getTasksForPlan(planId)
+
+    val allStudyPlanTasks: Flow<List<StudyPlanTask>> = dao.getAllTasks()
+
+    suspend fun insertStudyPlan(
+        title: String,
+        subtitle: String = "",
+        startDateMillis: Long = System.currentTimeMillis(),
+        endDateMillis: Long,
+        targetDays: Int,
+        colorHex: String = "#8A2BE2",
+        initialTaskTitles: List<String> = emptyList()
+    ): Long = withContext(Dispatchers.IO) {
+        val plan = StudyPlan(
+            title = title.trim(),
+            subtitle = subtitle.trim(),
+            startDateMillis = startDateMillis,
+            endDateMillis = endDateMillis,
+            targetDays = targetDays,
+            colorHex = colorHex
+        )
+        val planId = dao.insertStudyPlan(plan)
+        if (initialTaskTitles.isNotEmpty()) {
+            val tasks = initialTaskTitles.mapIndexed { index, taskTitle ->
+                val dayNum = if (targetDays > 0) ((index % targetDays) + 1) else (index + 1)
+                StudyPlanTask(
+                    planId = planId,
+                    title = taskTitle.trim(),
+                    dayNumber = dayNum
+                )
+            }
+            dao.insertStudyPlanTasks(tasks)
+        }
+        planId
+    }
+
+    suspend fun updateStudyPlan(plan: StudyPlan) = withContext(Dispatchers.IO) {
+        dao.updateStudyPlan(plan)
+    }
+
+    suspend fun deleteStudyPlan(plan: StudyPlan) = withContext(Dispatchers.IO) {
+        dao.deleteTasksByPlanId(plan.id)
+        dao.deleteStudyPlan(plan)
+    }
+
+    suspend fun addTaskToPlan(planId: Long, title: String, dayNumber: Int, notes: String = ""): Long = withContext(Dispatchers.IO) {
+        val task = StudyPlanTask(
+            planId = planId,
+            title = title.trim(),
+            dayNumber = dayNumber,
+            notes = notes.trim()
+        )
+        dao.insertStudyPlanTask(task)
+    }
+
+    suspend fun toggleTaskDone(task: StudyPlanTask) = withContext(Dispatchers.IO) {
+        dao.updateStudyPlanTask(task.copy(isDone = !task.isDone))
+    }
+
+    suspend fun deleteTask(task: StudyPlanTask) = withContext(Dispatchers.IO) {
+        dao.deleteStudyPlanTask(task)
+    }
 }

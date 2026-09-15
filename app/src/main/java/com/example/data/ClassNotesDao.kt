@@ -188,4 +188,42 @@ interface ClassNotesDao {
 
     @Query("DELETE FROM cached_sponsors")
     suspend fun clearCachedSponsors()
+
+    // Study Plans
+    @Query("SELECT * FROM study_plans ORDER BY createdAt DESC")
+    fun getAllStudyPlans(): Flow<List<StudyPlan>>
+
+    @Query("SELECT * FROM study_plans WHERE id = :id LIMIT 1")
+    fun getStudyPlanById(id: Long): Flow<StudyPlan?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStudyPlan(plan: StudyPlan): Long
+
+    @Update
+    suspend fun updateStudyPlan(plan: StudyPlan)
+
+    @Delete
+    suspend fun deleteStudyPlan(plan: StudyPlan)
+
+    // Study Plan Tasks
+    @Query("SELECT * FROM study_plan_tasks WHERE planId = :planId ORDER BY dayNumber ASC, id ASC")
+    fun getTasksForPlan(planId: Long): Flow<List<StudyPlanTask>>
+
+    @Query("SELECT * FROM study_plan_tasks ORDER BY dayNumber ASC, id ASC")
+    fun getAllTasks(): Flow<List<StudyPlanTask>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStudyPlanTask(task: StudyPlanTask): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStudyPlanTasks(tasks: List<StudyPlanTask>)
+
+    @Update
+    suspend fun updateStudyPlanTask(task: StudyPlanTask)
+
+    @Delete
+    suspend fun deleteStudyPlanTask(task: StudyPlanTask)
+
+    @Query("DELETE FROM study_plan_tasks WHERE planId = :planId")
+    suspend fun deleteTasksByPlanId(planId: Long)
 }

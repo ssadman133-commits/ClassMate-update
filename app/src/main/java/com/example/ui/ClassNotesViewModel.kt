@@ -15,6 +15,9 @@ import com.example.data.Note
 import com.example.data.NoteSearchResult
 import com.example.data.RoutineItem
 import com.example.data.SemesterRecord
+import com.example.data.StudyPlan
+import com.example.data.StudyPlanTask
+import com.example.data.StudyPlanWithTasks
 import com.example.data.Topic
 import com.example.data.TopicWithCount
 import com.example.util.AppThemeMode
@@ -45,6 +48,7 @@ sealed interface AppScreen {
     data object Assignments : AppScreen
     data object Exams : AppScreen
     data object ClassRoutine : AppScreen
+    data object StudyPlanner : AppScreen
     data object Settings : AppScreen
 }
 
@@ -141,6 +145,21 @@ class ClassNotesViewModel(application: Application) : AndroidViewModel(applicati
 
     // Class Routine
     val routineItems: StateFlow<List<RoutineItem>> = repository.allRoutineItems
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    // Study Plans & Tasks
+    val studyPlans: StateFlow<List<StudyPlan>> = repository.allStudyPlans
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val allStudyPlanTasks: StateFlow<List<StudyPlanTask>> = repository.allStudyPlanTasks
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -312,6 +331,10 @@ class ClassNotesViewModel(application: Application) : AndroidViewModel(applicati
         _currentScreen.value = AppScreen.ClassRoutine
     }
 
+    fun navigateToStudyPlanner() {
+        _currentScreen.value = AppScreen.StudyPlanner
+    }
+
     fun navigateToSettings() {
         _currentScreen.value = AppScreen.Settings
     }
@@ -336,6 +359,7 @@ class ClassNotesViewModel(application: Application) : AndroidViewModel(applicati
             is AppScreen.Assignments,
             is AppScreen.Exams,
             is AppScreen.ClassRoutine,
+            is AppScreen.StudyPlanner,
             is AppScreen.Settings -> {
                 navigateToHome()
                 true
@@ -980,6 +1004,88 @@ class ClassNotesViewModel(application: Application) : AndroidViewModel(applicati
                 _userMessage.value = "Sponsor banner synced successfully!"
             } catch (e: Exception) {
                 _userMessage.value = "Cloud sync checked (offline or no custom URL)"
+            }
+        }
+    }
+
+    // Study Plan CRUD
+    fun createStudyPlan(
+        title: String,
+        subtitle: String = "",
+        startDateMillis: Long = System.currentTimeMillis(),
+        endDateMillis: Long,
+        targetDays: Int,
+        colorHex: String = "#8A2BE2",
+        tasks: List<String> = emptyList()
+    ) {
+        viewModelScope.launch {
+            try {
+                repository.insertStudyPlan(
+                    title = title,
+                    subtitle = subtitle,
+                    startDateMillis = startDateMillis,
+                    endDateMillis = endDateMillis,
+                    targetDays = targetDays,
+                    colorHex = colorHex,
+                    initialTaskTitles = tasks
+                )
+                _userMessage.value = "Study plan created!"
+            } catch (e: Exception) {
+                _userMessage.value = "Failed to create study plan"
+            }
+        }
+    }
+
+    fun updateStudyPlan(plan: StudyPlan) {
+        viewModelScope.launch {
+            try {
+                repository.updateStudyPlan(plan)
+                _userMessage.value = "Study plan updated"
+            } catch (e: Exception) {
+                _userMessage.value = "Failed to update plan"
+            }
+        }
+    }
+
+    fun deleteStudyPlan(plan: StudyPlan) {
+        viewModelScope.launch {
+            try {
+                repository.deleteStudyPlan(plan)
+                _userMessage.value = "Study plan deleted"
+            } catch (e: Exception) {
+                _userMessage.value = "Failed to delete plan"
+            }
+        }
+    }
+
+    fun addTaskToPlan(planId: Long, title: String, dayNumber: Int, notes: String = "") {
+        viewModelScope.launch {
+            try {
+                repository.addTaskToPlan(planId, title, dayNumber, notes)
+                _userMessage.value = "Task added"
+            } catch (e: Exception) {
+                _userMessage.value = "Failed to add task"
+            }
+        }
+    }
+
+    fun togglePlanTask(task: StudyPlanTask) {
+        viewModelScope.launch {
+            try {
+                repository.toggleTaskDone(task)
+            } catch (e: Exception) {
+                _userMessage.value = "Failed to update task"
+            }
+        }
+    }
+
+    fun deletePlanTask(task: StudyPlanTask) {
+        viewModelScope.launch {
+            try {
+                repository.deleteTask(task)
+                _userMessage.value = "Task deleted"
+            } catch (e: Exception) {
+                _userMessage.value = "Failed to delete task"
             }
         }
     }

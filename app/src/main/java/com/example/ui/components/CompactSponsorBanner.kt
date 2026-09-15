@@ -136,7 +136,7 @@ fun CompactSponsorCarousel(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(136.dp)
+                    .height(142.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .clickable { onSponsorClick(sponsor.websiteUrl, sponsor.id) },
                 shape = RoundedCornerShape(18.dp),

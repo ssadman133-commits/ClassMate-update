@@ -4,11 +4,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,20 +39,12 @@ sealed class BottomNavTab(
         testTag = "nav_tab_home"
     )
 
-    data object Notes : BottomNavTab(
-        route = "notes",
-        label = "Notes",
-        selectedIcon = Icons.Default.MenuBook,
-        unselectedIcon = Icons.Outlined.MenuBook,
-        testTag = "nav_tab_notes"
-    )
-
-    data object Routine : BottomNavTab(
-        route = "routine",
-        label = "Routine",
+    data object StudyPlanner : BottomNavTab(
+        route = "study_planner",
+        label = "Study Planner",
         selectedIcon = Icons.Default.CalendarMonth,
         unselectedIcon = Icons.Outlined.CalendarMonth,
-        testTag = "nav_tab_routine"
+        testTag = "nav_tab_study_planner"
     )
 
     data object Settings : BottomNavTab(
@@ -70,24 +60,19 @@ sealed class BottomNavTab(
 fun AppBottomNavigationBar(
     currentScreen: AppScreen,
     onNavigateToHome: () -> Unit,
-    onNavigateToNotes: () -> Unit,
-    onNavigateToRoutine: () -> Unit,
+    onNavigateToStudyPlanner: () -> Unit,
     onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val tabs = listOf(
         BottomNavTab.Home,
-        BottomNavTab.Notes,
-        BottomNavTab.Routine,
+        BottomNavTab.StudyPlanner,
         BottomNavTab.Settings
     )
 
     val currentTab = when (currentScreen) {
         is AppScreen.Home -> BottomNavTab.Home
-        is AppScreen.ClassNotesList,
-        is AppScreen.CourseDetail,
-        is AppScreen.TopicNotes -> BottomNavTab.Notes
-        is AppScreen.ClassRoutine -> BottomNavTab.Routine
+        is AppScreen.StudyPlanner -> BottomNavTab.StudyPlanner
         is AppScreen.Settings -> BottomNavTab.Settings
         else -> null
     }
@@ -109,8 +94,7 @@ fun AppBottomNavigationBar(
                     onClick = {
                         when (tab) {
                             BottomNavTab.Home -> onNavigateToHome()
-                            BottomNavTab.Notes -> onNavigateToNotes()
-                            BottomNavTab.Routine -> onNavigateToRoutine()
+                            BottomNavTab.StudyPlanner -> onNavigateToStudyPlanner()
                             BottomNavTab.Settings -> onNavigateToSettings()
                         }
                     },

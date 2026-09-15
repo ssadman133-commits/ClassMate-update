@@ -53,6 +53,7 @@ import com.example.ui.screens.MainDashboardScreen
 import com.example.ui.screens.NoteSearchScreen
 import com.example.ui.screens.NoteViewerScreen
 import com.example.ui.screens.SettingsScreen
+import com.example.ui.screens.StudyPlannerScreen
 import com.example.ui.screens.TopicNotesScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.util.NotificationScheduler
@@ -147,6 +148,8 @@ fun ClassNotesApp(
     val assignments by viewModel.assignments.collectAsStateWithLifecycle()
     val exams by viewModel.exams.collectAsStateWithLifecycle()
     val routineItems by viewModel.routineItems.collectAsStateWithLifecycle()
+    val studyPlans by viewModel.studyPlans.collectAsStateWithLifecycle()
+    val allStudyPlanTasks by viewModel.allStudyPlanTasks.collectAsStateWithLifecycle()
     val semesterRecords by viewModel.semesterRecords.collectAsStateWithLifecycle()
     val activeSponsor by viewModel.activeSponsor.collectAsStateWithLifecycle()
     val activeSponsors by viewModel.activeSponsors.collectAsStateWithLifecycle()
@@ -240,6 +243,7 @@ fun ClassNotesApp(
                             isRefreshing = isRefreshing,
                             onRefresh = { viewModel.refreshDashboardData() },
                             onNavigateToClassNotes = { viewModel.navigateToClassNotes() },
+                            onNavigateToStudyPlanner = { viewModel.navigateToStudyPlanner() },
                             onNavigateToCgpa = { viewModel.navigateToCgpa() },
                             onNavigateToAssignments = { viewModel.navigateToAssignments() },
                             onNavigateToExams = { viewModel.navigateToExams() },
@@ -280,8 +284,7 @@ fun ClassNotesApp(
                                 AppBottomNavigationBar(
                                     currentScreen = screen,
                                     onNavigateToHome = { viewModel.navigateToHome() },
-                                    onNavigateToNotes = { /* already here */ },
-                                    onNavigateToRoutine = { viewModel.navigateToRoutine() },
+                                    onNavigateToStudyPlanner = { viewModel.navigateToStudyPlanner() },
                                     onNavigateToSettings = { viewModel.navigateToSettings() }
                                 )
                             }
@@ -405,13 +408,37 @@ fun ClassNotesApp(
                             },
                             onUpdateRoutineItem = { viewModel.updateRoutineItem(it) },
                             onDeleteRoutineItem = { viewModel.deleteRoutineItem(it) },
+                            onBack = { viewModel.navigateBack() }
+                        )
+                    }
+
+                    is AppScreen.StudyPlanner -> {
+                        StudyPlannerScreen(
+                            studyPlans = studyPlans,
+                            allTasks = allStudyPlanTasks,
+                            onCreatePlan = { title, subtitle, startDate, endDate, days, tasks ->
+                                viewModel.createStudyPlan(
+                                    title = title,
+                                    subtitle = subtitle,
+                                    startDateMillis = startDate,
+                                    endDateMillis = endDate,
+                                    targetDays = days,
+                                    tasks = tasks
+                                )
+                            },
+                            onUpdatePlan = { plan -> viewModel.updateStudyPlan(plan) },
+                            onDeletePlan = { plan -> viewModel.deleteStudyPlan(plan) },
+                            onAddTask = { planId, title, dayNum ->
+                                viewModel.addTaskToPlan(planId, title, dayNum)
+                            },
+                            onToggleTask = { task -> viewModel.togglePlanTask(task) },
+                            onDeleteTask = { task -> viewModel.deletePlanTask(task) },
                             onBack = { viewModel.navigateBack() },
                             bottomBar = {
                                 AppBottomNavigationBar(
                                     currentScreen = screen,
                                     onNavigateToHome = { viewModel.navigateToHome() },
-                                    onNavigateToNotes = { viewModel.navigateToClassNotes() },
-                                    onNavigateToRoutine = { /* already here */ },
+                                    onNavigateToStudyPlanner = { /* already here */ },
                                     onNavigateToSettings = { viewModel.navigateToSettings() }
                                 )
                             }
@@ -433,8 +460,7 @@ fun ClassNotesApp(
                                 AppBottomNavigationBar(
                                     currentScreen = screen,
                                     onNavigateToHome = { viewModel.navigateToHome() },
-                                    onNavigateToNotes = { viewModel.navigateToClassNotes() },
-                                    onNavigateToRoutine = { viewModel.navigateToRoutine() },
+                                    onNavigateToStudyPlanner = { viewModel.navigateToStudyPlanner() },
                                     onNavigateToSettings = { /* already here */ }
                                 )
                             }
