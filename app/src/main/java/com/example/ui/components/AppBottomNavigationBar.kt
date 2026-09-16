@@ -2,11 +2,11 @@ package com.example.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,12 +39,12 @@ sealed class BottomNavTab(
         testTag = "nav_tab_home"
     )
 
-    data object Pdf : BottomNavTab(
-        route = "pdf",
-        label = "PDF",
-        selectedIcon = Icons.Default.PictureAsPdf,
-        unselectedIcon = Icons.Outlined.PictureAsPdf,
-        testTag = "nav_tab_pdf"
+    data object Planner : BottomNavTab(
+        route = "planner",
+        label = "Planner",
+        selectedIcon = Icons.Default.CalendarMonth,
+        unselectedIcon = Icons.Outlined.CalendarMonth,
+        testTag = "nav_tab_planner"
     )
 
     data object Settings : BottomNavTab(
@@ -60,19 +60,19 @@ sealed class BottomNavTab(
 fun AppBottomNavigationBar(
     currentScreen: AppScreen,
     onNavigateToHome: () -> Unit,
-    onNavigateToPdf: () -> Unit,
+    onNavigateToPlanner: () -> Unit,
     onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val tabs = listOf(
         BottomNavTab.Home,
-        BottomNavTab.Pdf,
+        BottomNavTab.Planner,
         BottomNavTab.Settings
     )
 
     val currentTab = when (currentScreen) {
         is AppScreen.Home -> BottomNavTab.Home
-        is AppScreen.PdfWorkspace -> BottomNavTab.Pdf
+        is AppScreen.StudyPlanner -> BottomNavTab.Planner
         is AppScreen.Settings -> BottomNavTab.Settings
         else -> null
     }
@@ -94,7 +94,7 @@ fun AppBottomNavigationBar(
                     onClick = {
                         when (tab) {
                             BottomNavTab.Home -> onNavigateToHome()
-                            BottomNavTab.Pdf -> onNavigateToPdf()
+                            BottomNavTab.Planner -> onNavigateToPlanner()
                             BottomNavTab.Settings -> onNavigateToSettings()
                         }
                     },

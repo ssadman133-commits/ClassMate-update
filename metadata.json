@@ -1,6 +1,6 @@
 {
   "name": "ClassMate",
-  "description": "Offline Student Productivity Suite with Notes, PDF Scanner & Editor, Study Planner, CGPA Calculator, Assignments, and Routine.",
+  "description": "Offline Student Productivity Suite with Notes, Study Planner, CGPA Calculator, Assignments, and Routine.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

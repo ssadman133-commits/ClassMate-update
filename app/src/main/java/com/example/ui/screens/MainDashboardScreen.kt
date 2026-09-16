@@ -94,7 +94,6 @@ fun MainDashboardScreen(
     onRefresh: () -> Unit = {},
     onNavigateToClassNotes: () -> Unit,
     onNavigateToStudyPlanner: () -> Unit,
-    onNavigateToPdf: () -> Unit = {},
     onNavigateToCgpa: () -> Unit,
     onNavigateToAssignments: () -> Unit,
     onNavigateToExams: () -> Unit,
@@ -234,7 +233,7 @@ fun MainDashboardScreen(
             AppBottomNavigationBar(
                 currentScreen = AppScreen.Home,
                 onNavigateToHome = { /* Already on Home */ },
-                onNavigateToPdf = onNavigateToPdf,
+                onNavigateToPlanner = onNavigateToStudyPlanner,
                 onNavigateToSettings = onNavigateToSettings
             )
         }
