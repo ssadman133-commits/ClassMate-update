@@ -173,8 +173,8 @@ fun StudyPlannerScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showCreateDialog = true },
-                containerColor = Color(0xFF8A2BE2),
-                contentColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = CircleShape,
                 modifier = Modifier.testTag("fab_create_study_plan")
             ) {
@@ -201,13 +201,13 @@ fun StudyPlannerScreen(
                         modifier = Modifier
                             .size(80.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF8A2BE2).copy(alpha = 0.15f)),
+                            .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.CalendarMonth,
                             contentDescription = null,
-                            tint = Color(0xFF8A2BE2),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(42.dp)
                         )
                     }
@@ -227,7 +227,10 @@ fun StudyPlannerScreen(
 
                     Button(
                         onClick = { showCreateDialog = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8A2BE2)),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("button_start_first_plan")
                     ) {
@@ -259,7 +262,7 @@ fun StudyPlannerScreen(
                         ),
                         border = BorderStroke(
                             width = 1.dp,
-                            color = Color(0xFF8A2BE2).copy(alpha = 0.3f)
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
                         )
                     ) {
                         Box(
@@ -268,8 +271,8 @@ fun StudyPlannerScreen(
                                 .background(
                                     Brush.horizontalGradient(
                                         listOf(
-                                            Color(0xFF8A2BE2).copy(alpha = 0.15f),
-                                            Color(0xFF4A00E0).copy(alpha = 0.05f)
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f)
                                         )
                                     )
                                 )
@@ -283,13 +286,13 @@ fun StudyPlannerScreen(
                                     modifier = Modifier
                                         .size(46.dp)
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0xFF8A2BE2)),
+                                        .background(MaterialTheme.colorScheme.primary),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Flag,
                                         contentDescription = null,
-                                        tint = Color.White,
+                                        tint = MaterialTheme.colorScheme.onPrimary,
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }
@@ -456,8 +459,8 @@ fun StudyPlanCard(
                     .background(
                         Brush.horizontalGradient(
                             listOf(
-                                Color(0xFF8A2BE2),
-                                Color(0xFF5E35B1)
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.secondary
                             )
                         )
                     )
@@ -614,23 +617,23 @@ fun StudyPlanCard(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .testTag("view_roadmap_overview_${plan.id}"),
                 shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, Color(0xFF8A2BE2).copy(alpha = 0.35f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color(0xFF8A2BE2).copy(alpha = 0.05f)
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
                 )
             ) {
                 Icon(
                     imageVector = Icons.Default.Timeline,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = Color(0xFF8A2BE2)
+                    tint = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "View Full Roadmap & Daily Overview",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF8A2BE2)
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
@@ -735,7 +738,7 @@ fun StudyTaskItem(
                 Icon(
                     imageVector = if (task.isDone) Icons.Default.CheckCircle else Icons.Outlined.CheckCircle,
                     contentDescription = if (task.isDone) "Completed" else "Incomplete",
-                    tint = if (task.isDone) Color(0xFF8A2BE2) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (task.isDone) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp)
                 )
 
@@ -750,7 +753,7 @@ fun StudyTaskItem(
                     Text(
                         text = "Day ${task.dayNumber}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF8A2BE2),
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -800,7 +803,7 @@ fun CreateStudyPlanDialog(
                 Icon(
                     imageVector = Icons.Default.CalendarMonth,
                     contentDescription = null,
-                    tint = Color(0xFF8A2BE2)
+                    tint = MaterialTheme.colorScheme.primary
                 )
                 Text("New Study Plan", fontWeight = FontWeight.Bold)
             }
@@ -855,8 +858,8 @@ fun CreateStudyPlanDialog(
                             },
                             label = { Text("$days d") },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(0xFF8A2BE2),
-                                selectedLabelColor = Color.White
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                             )
                         )
                     }
@@ -877,7 +880,7 @@ fun CreateStudyPlanDialog(
                         },
                         enabled = selectedDays > 1
                     ) {
-                        Text("-", style = MaterialTheme.typography.headlineMedium, color = Color(0xFF8A2BE2))
+                        Text("-", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
                     }
 
                     OutlinedTextField(
@@ -907,7 +910,7 @@ fun CreateStudyPlanDialog(
                         },
                         enabled = selectedDays < 365
                     ) {
-                        Text("+", style = MaterialTheme.typography.headlineMedium, color = Color(0xFF8A2BE2))
+                        Text("+", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
                     }
                 }
 
@@ -925,7 +928,7 @@ fun CreateStudyPlanDialog(
                             text = "🗓️ Schedule Duration: $selectedDays Days",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF8A2BE2)
+                            color = MaterialTheme.colorScheme.primary
                         )
                         Text(
                             text = "Starts: ${DateFormat.format("dd MMM yyyy", Date(startDateMillis))} • Ends: ${DateFormat.format("dd MMM yyyy", Date(calculatedEndDate))}",
@@ -959,7 +962,10 @@ fun CreateStudyPlanDialog(
                     }
                 },
                 enabled = title.isNotBlank() && selectedDays > 0,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8A2BE2)),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
                 modifier = Modifier.testTag("button_confirm_create_plan")
             ) {
                 Text("Create Plan")
@@ -1000,7 +1006,7 @@ fun EditStudyPlanDialog(
                 Icon(
                     imageVector = Icons.Default.Edit,
                     contentDescription = null,
-                    tint = Color(0xFF8A2BE2)
+                    tint = MaterialTheme.colorScheme.primary
                 )
                 Text("Edit Study Plan & Days", fontWeight = FontWeight.Bold)
             }
@@ -1049,8 +1055,8 @@ fun EditStudyPlanDialog(
                             },
                             label = { Text("$days d") },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(0xFF8A2BE2),
-                                selectedLabelColor = Color.White
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                             )
                         )
                     }
@@ -1071,7 +1077,7 @@ fun EditStudyPlanDialog(
                         },
                         enabled = selectedDays > 1
                     ) {
-                        Text("-", style = MaterialTheme.typography.headlineMedium, color = Color(0xFF8A2BE2))
+                        Text("-", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
                     }
 
                     OutlinedTextField(
@@ -1101,7 +1107,7 @@ fun EditStudyPlanDialog(
                         },
                         enabled = selectedDays < 365
                     ) {
-                        Text("+", style = MaterialTheme.typography.headlineMedium, color = Color(0xFF8A2BE2))
+                        Text("+", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
                     }
                 }
 
@@ -1119,7 +1125,7 @@ fun EditStudyPlanDialog(
                             text = "🗓️ Schedule Duration: $selectedDays Days",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF8A2BE2)
+                            color = MaterialTheme.colorScheme.primary
                         )
                         Text(
                             text = "Started: ${DateFormat.format("dd MMM yyyy", Date(plan.startDateMillis))}",
@@ -1150,7 +1156,10 @@ fun EditStudyPlanDialog(
                     }
                 },
                 enabled = title.isNotBlank() && selectedDays > 0,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8A2BE2)),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
                 modifier = Modifier.testTag("save_edit_plan_button")
             ) {
                 Text("Save Changes")
@@ -1204,7 +1213,10 @@ fun StudyPlanOverviewDialog(
                         .fillMaxWidth()
                         .background(
                             Brush.horizontalGradient(
-                                listOf(Color(0xFF8A2BE2), Color(0xFF5E35B1))
+                                listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.secondary
+                                )
                             )
                         )
                         .padding(16.dp)
@@ -1320,7 +1332,7 @@ fun StudyPlanOverviewDialog(
                                     text = "${planWithTasks.progressPercent}%",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF8A2BE2)
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 LinearProgressIndicator(
@@ -1329,8 +1341,8 @@ fun StudyPlanOverviewDialog(
                                         .fillMaxWidth()
                                         .height(4.dp)
                                         .clip(RoundedCornerShape(2.dp)),
-                                    color = Color(0xFF8A2BE2),
-                                    trackColor = Color(0xFF8A2BE2).copy(alpha = 0.2f)
+                                    color = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                                 )
                             }
                         }
@@ -1350,7 +1362,7 @@ fun StudyPlanOverviewDialog(
                                     text = "${planWithTasks.completedTasks} / ${planWithTasks.totalTasks}",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF8A2BE2)
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
                                     text = "${planWithTasks.totalTasks - planWithTasks.completedTasks} pending",
@@ -1375,7 +1387,7 @@ fun StudyPlanOverviewDialog(
                                     text = "${planWithTasks.getDaysLeft()} Days",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF8A2BE2)
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
                                     text = "Day ${planWithTasks.getDaysPassed()} of ${plan.targetDays}",
@@ -1398,8 +1410,8 @@ fun StudyPlanOverviewDialog(
                                 onClick = { selectedDayFilter = 0 },
                                 label = { Text("All Days (${plan.targetDays})") },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Color(0xFF8A2BE2),
-                                    selectedLabelColor = Color.White
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                 )
                             )
                         }
@@ -1416,8 +1428,8 @@ fun StudyPlanOverviewDialog(
                                     )
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Color(0xFF8A2BE2),
-                                    selectedLabelColor = Color.White
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                 )
                             )
                         }
@@ -1472,7 +1484,7 @@ fun StudyPlanOverviewDialog(
                                     ) {
                                         Surface(
                                             shape = RoundedCornerShape(6.dp),
-                                            color = if (isDayComplete) Color(0xFF4CAF50) else Color(0xFF8A2BE2)
+                                            color = if (isDayComplete) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary
                                         ) {
                                             Text(
                                                 text = "Day $dayNum",
@@ -1512,13 +1524,13 @@ fun StudyPlanOverviewDialog(
                                                 imageVector = Icons.Default.Add,
                                                 contentDescription = null,
                                                 modifier = Modifier.size(14.dp),
-                                                tint = Color(0xFF8A2BE2)
+                                                tint = MaterialTheme.colorScheme.primary
                                             )
                                             Spacer(modifier = Modifier.width(2.dp))
                                             Text(
                                                 text = "Add Task",
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = Color(0xFF8A2BE2)
+                                                color = MaterialTheme.colorScheme.primary
                                             )
                                         }
                                     }
@@ -1577,7 +1589,10 @@ fun StudyPlanOverviewDialog(
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("overview_footer_close_btn"),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8A2BE2)),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Text("Done")
@@ -1639,7 +1654,7 @@ fun AddTaskDialog(
                         text = "Day $dayNumber",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF8A2BE2)
+                        color = MaterialTheme.colorScheme.primary
                     )
 
                     IconButton(
@@ -1659,7 +1674,10 @@ fun AddTaskDialog(
                     }
                 },
                 enabled = taskTitle.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8A2BE2)),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
                 modifier = Modifier.testTag("button_confirm_add_task")
             ) {
                 Text("Add Task")

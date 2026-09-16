@@ -49,6 +49,7 @@ sealed interface AppScreen {
     data object Exams : AppScreen
     data object ClassRoutine : AppScreen
     data object StudyPlanner : AppScreen
+    data object PdfWorkspace : AppScreen
     data object Settings : AppScreen
 }
 
@@ -335,6 +336,10 @@ class ClassNotesViewModel(application: Application) : AndroidViewModel(applicati
         _currentScreen.value = AppScreen.StudyPlanner
     }
 
+    fun navigateToPdf() {
+        _currentScreen.value = AppScreen.PdfWorkspace
+    }
+
     fun navigateToSettings() {
         _currentScreen.value = AppScreen.Settings
     }
@@ -360,6 +365,7 @@ class ClassNotesViewModel(application: Application) : AndroidViewModel(applicati
             is AppScreen.Exams,
             is AppScreen.ClassRoutine,
             is AppScreen.StudyPlanner,
+            is AppScreen.PdfWorkspace,
             is AppScreen.Settings -> {
                 navigateToHome()
                 true

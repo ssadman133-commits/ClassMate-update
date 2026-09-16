@@ -94,6 +94,7 @@ fun MainDashboardScreen(
     onRefresh: () -> Unit = {},
     onNavigateToClassNotes: () -> Unit,
     onNavigateToStudyPlanner: () -> Unit,
+    onNavigateToPdf: () -> Unit = {},
     onNavigateToCgpa: () -> Unit,
     onNavigateToAssignments: () -> Unit,
     onNavigateToExams: () -> Unit,
@@ -233,7 +234,7 @@ fun MainDashboardScreen(
             AppBottomNavigationBar(
                 currentScreen = AppScreen.Home,
                 onNavigateToHome = { /* Already on Home */ },
-                onNavigateToStudyPlanner = onNavigateToStudyPlanner,
+                onNavigateToPdf = onNavigateToPdf,
                 onNavigateToSettings = onNavigateToSettings
             )
         }
@@ -355,11 +356,8 @@ fun MainDashboardScreen(
                         title = "Study Planner",
                         subtitle = "Plan your study, track progress\n& stay on schedule",
                         icon = Icons.Default.CalendarMonth,
-                        iconBg = Brush.linearGradient(listOf(Color(0xFFAB47BC), Color(0xFF7B1FA2))),
-                        chevronTint = Color(0xFFBA68C8),
-                        cardBackground = Brush.linearGradient(
-                            listOf(Color(0xFF0F172A), Color(0xFF1E1138))
-                        ),
+                        iconBg = Brush.linearGradient(listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8))),
+                        chevronTint = Color(0xFF93C5FD),
                         testTag = "hub_study_planner_card",
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateToStudyPlanner

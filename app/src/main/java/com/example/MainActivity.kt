@@ -58,6 +58,8 @@ import com.example.ui.screens.TopicNotesScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.util.NotificationScheduler
 import com.example.util.AppThemeMode
+import com.example.pdf.PdfViewModel
+import com.example.pdf.ui.PdfWorkspaceScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -71,6 +73,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val viewModel: ClassNotesViewModel = viewModel()
+            val pdfViewModel: PdfViewModel = viewModel()
             val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
             val isDark = when (themeMode) {
                 AppThemeMode.SYSTEM -> isSystemInDarkTheme()
@@ -127,7 +130,10 @@ class MainActivity : ComponentActivity() {
             }
 
             MyApplicationTheme(darkTheme = isDark) {
-                ClassNotesApp(viewModel = viewModel)
+                ClassNotesApp(
+                    viewModel = viewModel,
+                    pdfViewModel = pdfViewModel
+                )
             }
         }
     }
@@ -135,7 +141,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun ClassNotesApp(
-    viewModel: ClassNotesViewModel = viewModel()
+    viewModel: ClassNotesViewModel = viewModel(),
+    pdfViewModel: PdfViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val currentScreen by viewModel.currentScreen.collectAsStateWithLifecycle()
@@ -244,6 +251,7 @@ fun ClassNotesApp(
                             onRefresh = { viewModel.refreshDashboardData() },
                             onNavigateToClassNotes = { viewModel.navigateToClassNotes() },
                             onNavigateToStudyPlanner = { viewModel.navigateToStudyPlanner() },
+                            onNavigateToPdf = { viewModel.navigateToPdf() },
                             onNavigateToCgpa = { viewModel.navigateToCgpa() },
                             onNavigateToAssignments = { viewModel.navigateToAssignments() },
                             onNavigateToExams = { viewModel.navigateToExams() },
@@ -284,7 +292,7 @@ fun ClassNotesApp(
                                 AppBottomNavigationBar(
                                     currentScreen = screen,
                                     onNavigateToHome = { viewModel.navigateToHome() },
-                                    onNavigateToStudyPlanner = { viewModel.navigateToStudyPlanner() },
+                                    onNavigateToPdf = { viewModel.navigateToPdf() },
                                     onNavigateToSettings = { viewModel.navigateToSettings() }
                                 )
                             }
@@ -438,7 +446,21 @@ fun ClassNotesApp(
                                 AppBottomNavigationBar(
                                     currentScreen = screen,
                                     onNavigateToHome = { viewModel.navigateToHome() },
-                                    onNavigateToStudyPlanner = { /* already here */ },
+                                    onNavigateToPdf = { viewModel.navigateToPdf() },
+                                    onNavigateToSettings = { viewModel.navigateToSettings() }
+                                )
+                            }
+                        )
+                    }
+
+                    is AppScreen.PdfWorkspace -> {
+                        PdfWorkspaceScreen(
+                            viewModel = pdfViewModel,
+                            bottomBar = {
+                                AppBottomNavigationBar(
+                                    currentScreen = screen,
+                                    onNavigateToHome = { viewModel.navigateToHome() },
+                                    onNavigateToPdf = { /* already here */ },
                                     onNavigateToSettings = { viewModel.navigateToSettings() }
                                 )
                             }
@@ -460,7 +482,7 @@ fun ClassNotesApp(
                                 AppBottomNavigationBar(
                                     currentScreen = screen,
                                     onNavigateToHome = { viewModel.navigateToHome() },
-                                    onNavigateToStudyPlanner = { viewModel.navigateToStudyPlanner() },
+                                    onNavigateToPdf = { viewModel.navigateToPdf() },
                                     onNavigateToSettings = { /* already here */ }
                                 )
                             }

@@ -1,0 +1,9 @@
+{
+  "name": "classmate-admin-portal",
+  "version": "2.0.0",
+  "description": "ClassMate Sponsor & Partner Admin Portal and APK Server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
