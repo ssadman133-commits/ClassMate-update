@@ -64,6 +64,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,11 +76,13 @@ import com.example.data.CachedSponsor
 import com.example.data.Exam
 import com.example.data.RoutineItem
 import com.example.ui.AppScreen
+import com.example.ui.components.AdMobBannerAd
 import com.example.ui.components.AlertCalculator
 import com.example.ui.components.AppBottomNavigationBar
 import com.example.ui.components.CompactSponsorBanner
 import com.example.ui.components.CompactSponsorCarousel
 import com.example.ui.components.UpcomingAlertsBottomSheet
+import com.example.util.CountryDetector
 import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,6 +120,11 @@ fun MainDashboardScreen(
 
     val activeAlerts = remember(allAlerts, dismissedAlertIds) {
         allAlerts.filter { it.id !in dismissedAlertIds }
+    }
+
+    val context = LocalContext.current
+    val isBangladeshUser = remember(context) {
+        CountryDetector.isBangladeshUser(context)
     }
 
     // Featured Hero Sponsor & Promo Banner (Only displays when admin has created real active sponsors)
@@ -468,14 +476,27 @@ fun MainDashboardScreen(
                 }
             }
 
-            // 5. Featured Hero Sponsor & Promo Banner Carousel (Only displays when admin has active sponsors)
-            if (displaySponsors.isNotEmpty()) {
-                item {
-                    CompactSponsorCarousel(
-                        sponsors = displaySponsors,
-                        onSponsorClick = onSponsorClick,
-                        onSponsorImpression = onSponsorImpression,
-                        slideIntervalMillis = 4000L,
+            // 5. Smart Monetization System:
+            // - Bangladesh user with active sponsors -> Show Local Sponsor Carousel
+            // - Bangladesh user with no active sponsors -> Show AdMob Banner
+            // - Foreign user -> Show AdMob Banner
+            item {
+                if (isBangladeshUser) {
+                    if (displaySponsors.isNotEmpty()) {
+                        CompactSponsorCarousel(
+                            sponsors = displaySponsors,
+                            onSponsorClick = onSponsorClick,
+                            onSponsorImpression = onSponsorImpression,
+                            slideIntervalMillis = 4000L,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    } else {
+                        AdMobBannerAd(
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                } else {
+                    AdMobBannerAd(
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }

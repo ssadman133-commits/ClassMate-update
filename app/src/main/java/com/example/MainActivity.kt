@@ -58,6 +58,7 @@ import com.example.ui.screens.TopicNotesScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.util.NotificationScheduler
 import com.example.util.AppThemeMode
+import com.google.android.gms.ads.MobileAds
 
 class MainActivity : ComponentActivity() {
 
@@ -68,6 +69,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        try {
+            val playServicesAvailable = com.google.android.gms.common.GoogleApiAvailability.getInstance()
+                .isGooglePlayServicesAvailable(this) == com.google.android.gms.common.ConnectionResult.SUCCESS
+            if (playServicesAvailable) {
+                Thread {
+                    try {
+                        MobileAds.initialize(this) {}
+                    } catch (_: Throwable) {}
+                }.start()
+            }
+        } catch (_: Throwable) {}
         enableEdgeToEdge()
         setContent {
             val viewModel: ClassNotesViewModel = viewModel()
