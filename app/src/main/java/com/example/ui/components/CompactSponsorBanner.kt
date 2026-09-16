@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -97,24 +98,33 @@ fun CompactSponsorCarousel(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // Record impression for currently displayed sponsor
-    LaunchedEffect(pagerState.currentPage, validSponsors) {
+    // Record impression for settled sponsor banner
+    LaunchedEffect(pagerState.settledPage, validSponsors) {
         if (validSponsors.isNotEmpty()) {
-            val currentSponsor = validSponsors[pagerState.currentPage.coerceIn(0, validSponsors.lastIndex)]
+            val currentSponsor = validSponsors[pagerState.settledPage.coerceIn(0, validSponsors.lastIndex)]
             onSponsorImpression?.invoke(currentSponsor.id)
         }
     }
 
-    // Auto-scroll ticker every 4 seconds if there are 2 or more sponsors
-    LaunchedEffect(validSponsors.size, pagerState.currentPage) {
+    // Smooth auto-scroll ticker: runs continuously without cancelling mid-scroll
+    LaunchedEffect(validSponsors.size) {
         if (validSponsors.size > 1) {
-            delay(slideIntervalMillis)
-            if (!pagerState.isScrollInProgress) {
-                val nextPage = (pagerState.currentPage + 1) % validSponsors.size
-                pagerState.animateScrollToPage(
-                    page = nextPage,
-                    animationSpec = tween(600)
-                )
+            while (true) {
+                delay(slideIntervalMillis)
+                if (!pagerState.isScrollInProgress) {
+                    val nextPage = (pagerState.currentPage + 1) % validSponsors.size
+                    try {
+                        pagerState.animateScrollToPage(
+                            page = nextPage,
+                            animationSpec = tween(
+                                durationMillis = 650,
+                                easing = FastOutSlowInEasing
+                            )
+                        )
+                    } catch (_: Exception) {
+                        // Safely ignore touch cancellation
+                    }
+                }
             }
         }
     }
@@ -123,9 +133,11 @@ fun CompactSponsorCarousel(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 1. Touch-Swipeable Horizontal Pager
+        // 1. Touch-Swipeable Horizontal Pager with snap and page spacing
         HorizontalPager(
             state = pagerState,
+            pageSpacing = 12.dp,
+            beyondViewportPageCount = 1,
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("compact_sponsor_carousel")
