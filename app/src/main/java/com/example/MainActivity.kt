@@ -240,6 +240,7 @@ fun ClassNotesApp(
                             activeSponsors = activeSponsors,
                             assignments = assignments,
                             exams = exams,
+                            routineItems = routineItems,
                             isRefreshing = isRefreshing,
                             onRefresh = { viewModel.refreshDashboardData() },
                             onNavigateToClassNotes = { viewModel.navigateToClassNotes() },
@@ -325,6 +326,9 @@ fun ClassNotesApp(
                             onGalleryPick = { uris -> viewModel.onGalleryPhotosSelected(uris) },
                             onShareNotes = { selectedNotes ->
                                 viewModel.shareNotes(selectedNotes, currentTopic, currentCourse)
+                            },
+                            onExportPdf = { selectedNotes ->
+                                viewModel.exportNotesAsPdf(selectedNotes, currentTopic, currentCourse)
                             },
                             onDeleteMultipleNotes = { selectedNotes ->
                                 viewModel.deleteMultipleNotes(selectedNotes)

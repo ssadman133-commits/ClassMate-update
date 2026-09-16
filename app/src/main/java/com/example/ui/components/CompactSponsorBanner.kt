@@ -148,7 +148,7 @@ fun CompactSponsorCarousel(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(142.dp)
+                    .height(148.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .clickable { onSponsorClick(sponsor.websiteUrl, sponsor.id) },
                 shape = RoundedCornerShape(18.dp),
@@ -308,7 +308,7 @@ fun CompactSponsorCarousel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 4.dp),
+                    .padding(top = 5.dp, bottom = 2.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -318,13 +318,13 @@ fun CompactSponsorCarousel(
                         modifier = Modifier
                             .padding(horizontal = 3.dp)
                             .size(
-                                width = if (isSelected) 16.dp else 5.dp,
-                                height = 5.dp
+                                width = if (isSelected) 18.dp else 6.dp,
+                                height = 6.dp
                             )
                             .clip(CircleShape)
                             .background(
-                                if (isSelected) MaterialTheme.colorScheme.primary
-                                else Color(0x5594A3B8)
+                                if (isSelected) Color(0xFF38BDF8)
+                                else Color(0x8894A3B8)
                             )
                             .clickable {
                                 coroutineScope.launch {

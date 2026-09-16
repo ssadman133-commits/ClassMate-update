@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -201,6 +202,13 @@ fun CgpaCalculatorScreen(
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
+                    text = { Text("Target Planner", fontWeight = FontWeight.SemiBold) },
+                    icon = { Icon(Icons.Default.TrendingUp, contentDescription = null) },
+                    modifier = Modifier.testTag("tab_cgpa_target_planner")
+                )
+                Tab(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
                     text = { Text("History (${semesterHistory.size})", fontWeight = FontWeight.SemiBold) },
                     icon = { Icon(Icons.Default.History, contentDescription = null) },
                     modifier = Modifier.testTag("tab_cgpa_history")
@@ -413,6 +421,13 @@ fun CgpaCalculatorScreen(
                         )
                     }
                 }
+            } else if (selectedTab == 1) {
+                // Target CGPA Planner Tab
+                TargetCgpaPlannerView(
+                    gradeScale = gradeScale,
+                    currentCgpaSuggestion = if (cumulativeCgpa > 0.0) cumulativeCgpa else 3.20,
+                    completedCreditsSuggestion = if (prevCreditsText.toDoubleOrNull() != null) prevCreditsText.toDouble() else 60.0
+                )
             } else {
                 // Semester History Tab
                 if (semesterHistory.isEmpty()) {
@@ -653,6 +668,345 @@ fun CourseRowCard(
                         contentDescription = "Remove course",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TargetCgpaPlannerView(
+    gradeScale: GradeScale,
+    currentCgpaSuggestion: Double,
+    completedCreditsSuggestion: Double,
+    modifier: Modifier = Modifier
+) {
+    var currentCgpaText by remember {
+        mutableStateOf(if (currentCgpaSuggestion > 0.0) String.format(Locale.US, "%.2f", currentCgpaSuggestion) else "3.20")
+    }
+    var completedCreditsText by remember {
+        mutableStateOf(if (completedCreditsSuggestion > 0.0) String.format(Locale.US, "%.1f", completedCreditsSuggestion) else "60.0")
+    }
+    var targetCgpaText by remember { mutableStateOf("3.60") }
+    var remainingCreditsText by remember { mutableStateOf("30.0") }
+
+    val curCgpa = currentCgpaText.toDoubleOrNull() ?: 0.0
+    val compCredits = completedCreditsText.toDoubleOrNull() ?: 0.0
+    val targetCgpa = targetCgpaText.toDoubleOrNull() ?: 0.0
+    val remCredits = remainingCreditsText.toDoubleOrNull() ?: 0.0
+
+    val requiredGpa = remember(curCgpa, compCredits, targetCgpa, remCredits) {
+        if (remCredits > 0.0 && targetCgpa > 0.0) {
+            val totalCredits = compCredits + remCredits
+            val totalRequiredPoints = targetCgpa * totalCredits
+            val currentPoints = curCgpa * compCredits
+            val requiredPoints = totalRequiredPoints - currentPoints
+            requiredPoints / remCredits
+        } else {
+            null
+        }
+    }
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // Target Summary Card
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .testTag("target_cgpa_result_card"),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = when {
+                        requiredGpa == null -> MaterialTheme.colorScheme.surfaceVariant
+                        requiredGpa > gradeScale.aPlus -> MaterialTheme.colorScheme.errorContainer
+                        requiredGpa <= curCgpa -> MaterialTheme.colorScheme.tertiaryContainer
+                        else -> MaterialTheme.colorScheme.primaryContainer
+                    }
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(18.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "REQUIRED GPA IN REMAINING CREDITS",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = when {
+                            requiredGpa == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                            requiredGpa > gradeScale.aPlus -> MaterialTheme.colorScheme.onErrorContainer
+                            requiredGpa <= curCgpa -> MaterialTheme.colorScheme.onTertiaryContainer
+                            else -> MaterialTheme.colorScheme.onPrimaryContainer
+                        },
+                        letterSpacing = 1.sp
+                    )
+
+                    Text(
+                        text = if (requiredGpa != null) String.format(Locale.US, "%.2f", requiredGpa.coerceAtLeast(0.0)) else "—",
+                        style = MaterialTheme.typography.displayMedium,
+                        fontWeight = FontWeight.Black,
+                        color = when {
+                            requiredGpa == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                            requiredGpa > gradeScale.aPlus -> MaterialTheme.colorScheme.onErrorContainer
+                            requiredGpa <= curCgpa -> MaterialTheme.colorScheme.onTertiaryContainer
+                            else -> MaterialTheme.colorScheme.onPrimaryContainer
+                        }
+                    )
+
+                    // Feasibility Message
+                    val (statusText, adviceText) = when {
+                        requiredGpa == null -> Pair("Enter your academic details", "Fill in your credits and CGPA targets below.")
+                        requiredGpa > gradeScale.aPlus -> Pair(
+                            "⚠️ Target Math Unattainable",
+                            "Requires higher than maximum scale (${gradeScale.aPlus}). Increase remaining credits or adjust target CGPA."
+                        )
+                        requiredGpa <= 0.0 -> Pair(
+                            "🎉 Goal Already Achieved!",
+                            "Your completed credits already ensure a CGPA above your target."
+                        )
+                        requiredGpa <= curCgpa -> Pair(
+                            "✅ Easily Attainable",
+                            "Maintaining your current pace or scoring ${String.format(Locale.US, "%.2f", requiredGpa)}+ will secure your goal."
+                        )
+                        requiredGpa in 3.60..gradeScale.aPlus -> Pair(
+                            "🔥 High Performance Needed",
+                            "Aim for mostly A and A+ grades in your remaining ${String.format(Locale.US, "%.0f", remCredits)} credits."
+                        )
+                        else -> Pair(
+                            "🎯 Realistic Goal",
+                            "Maintain a consistent B+ to A average to reach your target."
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
+                    ) {
+                        Text(
+                            text = statusText,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+
+                    Text(
+                        text = adviceText,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
+            }
+        }
+
+        // Input Fields Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "Academic Parameters",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    // Target CGPA with quick chips
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedTextField(
+                            value = targetCgpaText,
+                            onValueChange = { targetCgpaText = it },
+                            label = { Text("Target CGPA Desired") },
+                            placeholder = { Text("e.g. 3.75") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth().testTag("input_target_cgpa"),
+                            singleLine = true
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("3.50", "3.65", "3.75", "4.00").forEach { preset ->
+                                Surface(
+                                    onClick = { targetCgpaText = preset },
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (targetCgpaText == preset) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        text = preset,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        modifier = Modifier.padding(vertical = 6.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Current CGPA
+                    OutlinedTextField(
+                        value = currentCgpaText,
+                        onValueChange = { currentCgpaText = it },
+                        label = { Text("Current CGPA") },
+                        placeholder = { Text("e.g. 3.25") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth().testTag("input_current_cgpa"),
+                        singleLine = true
+                    )
+
+                    // Completed Credits
+                    OutlinedTextField(
+                        value = completedCreditsText,
+                        onValueChange = { completedCreditsText = it },
+                        label = { Text("Completed Credits So Far") },
+                        placeholder = { Text("e.g. 60.0") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth().testTag("input_completed_credits"),
+                        singleLine = true
+                    )
+
+                    // Remaining Credits with quick chips
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedTextField(
+                            value = remainingCreditsText,
+                            onValueChange = { remainingCreditsText = it },
+                            label = { Text("Remaining Credits to Complete") },
+                            placeholder = { Text("e.g. 30.0") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth().testTag("input_remaining_credits"),
+                            singleLine = true
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(
+                                "15.0" to "1 Sem",
+                                "30.0" to "2 Sem",
+                                "45.0" to "3 Sem",
+                                "60.0" to "4 Sem"
+                            ).forEach { (credits, label) ->
+                                Surface(
+                                    onClick = { remainingCreditsText = credits },
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (remainingCreditsText == credits) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.padding(vertical = 5.dp)
+                                    ) {
+                                        Text(
+                                            text = credits,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = label,
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Graduation Credit Outlook Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = String.format(Locale.US, "%.1f", compCredits + remCredits),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Total Degree Cr",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(28.dp)
+                            .background(MaterialTheme.colorScheme.outlineVariant)
+                    )
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = if (compCredits + remCredits > 0) String.format(Locale.US, "%.0f%%", (compCredits / (compCredits + remCredits)) * 100) else "0%",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Completed",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(28.dp)
+                            .background(MaterialTheme.colorScheme.outlineVariant)
+                    )
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = targetCgpaText,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Text(
+                            text = "Target CGPA",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }

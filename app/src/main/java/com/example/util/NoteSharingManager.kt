@@ -383,4 +383,102 @@ object NoteSharingManager {
 
         topicId
     }
+
+    /**
+     * Exports a list of notes into a single multi-page PDF document.
+     * Returns the Uri of the generated PDF file.
+     */
+    suspend fun exportNotesAsPdf(
+        context: Context,
+        notes: List<Note>,
+        topicTitle: String,
+        courseName: String
+    ): Uri? = withContext(Dispatchers.IO) {
+        if (notes.isEmpty()) return@withContext null
+        try {
+            val pdfDir = File(context.cacheDir, "pdf_exports").apply { mkdirs() }
+            val cleanTitle = topicTitle.replace(Regex("[^a-zA-Z0-9_]"), "_").take(25)
+            val pdfFile = File(pdfDir, "${cleanTitle}_Notes_${System.currentTimeMillis()}.pdf")
+
+            val document = android.graphics.pdf.PdfDocument()
+            val pageWidth = 595 // Standard A4 pt width at 72dpi
+            val pageHeight = 842 // Standard A4 pt height at 72dpi
+
+            val titlePaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.BLACK
+                textSize = 14f
+                isFakeBoldText = true
+                isAntiAlias = true
+            }
+
+            val subtitlePaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.DKGRAY
+                textSize = 10f
+                isAntiAlias = true
+            }
+
+            notes.forEachIndexed { index, note ->
+                val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, index + 1).create()
+                val page = document.startPage(pageInfo)
+                val canvas = page.canvas
+
+                // Header bar
+                canvas.drawText("$courseName — $topicTitle", 36f, 40f, titlePaint)
+                val captionPreview = if (!note.textNote.isNullOrBlank()) "  •  ${note.textNote}" else ""
+                canvas.drawText("Page ${index + 1} of ${notes.size}$captionPreview", 36f, 56f, subtitlePaint)
+                canvas.drawLine(36f, 66f, (pageWidth - 36).toFloat(), 66f, subtitlePaint)
+
+                // Draw note image
+                val imgFile = File(note.imagePath)
+                if (imgFile.exists()) {
+                    val bitmap = android.graphics.BitmapFactory.decodeFile(imgFile.absolutePath)
+                    if (bitmap != null) {
+                        val maxW = (pageWidth - 72).toFloat()
+                        val maxH = (pageHeight - 120).toFloat()
+                        val ratio = minOf(maxW / bitmap.width.toFloat(), maxH / bitmap.height.toFloat())
+                        val drawW = bitmap.width * ratio
+                        val drawH = bitmap.height * ratio
+                        val left = (pageWidth - drawW) / 2f
+                        val top = 80f + ((maxH - drawH) / 2f)
+
+                        val destRect = android.graphics.RectF(left, top, left + drawW, top + drawH)
+                        canvas.drawBitmap(bitmap, null, destRect, null)
+                        bitmap.recycle()
+                    }
+                }
+
+                document.finishPage(page)
+            }
+
+            FileOutputStream(pdfFile).use { out ->
+                document.writeTo(out)
+            }
+            document.close()
+
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                pdfFile
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    /**
+     * Launches share intent specifically for PDF export.
+     */
+    fun launchPdfShareIntent(context: Context, pdfUri: Uri, title: String) {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/pdf"
+            putExtra(Intent.EXTRA_STREAM, pdfUri)
+            putExtra(Intent.EXTRA_SUBJECT, title)
+            putExtra(Intent.EXTRA_TEXT, "ClassMate PDF Notes: $title")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val chooser = Intent.createChooser(intent, "Export / Share PDF")
+        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(chooser)
+    }
 }

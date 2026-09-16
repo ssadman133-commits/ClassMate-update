@@ -73,12 +73,14 @@ import androidx.compose.ui.unit.sp
 import com.example.data.Assignment
 import com.example.data.CachedSponsor
 import com.example.data.Exam
+import com.example.data.RoutineItem
 import com.example.ui.AppScreen
 import com.example.ui.components.AlertCalculator
 import com.example.ui.components.AppBottomNavigationBar
 import com.example.ui.components.CompactSponsorBanner
 import com.example.ui.components.CompactSponsorCarousel
 import com.example.ui.components.UpcomingAlertsBottomSheet
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +92,7 @@ fun MainDashboardScreen(
     activeSponsors: List<CachedSponsor> = emptyList(),
     assignments: List<Assignment> = emptyList(),
     exams: List<Exam> = emptyList(),
+    routineItems: List<RoutineItem> = emptyList(),
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     onNavigateToClassNotes: () -> Unit,
@@ -122,6 +125,34 @@ fun MainDashboardScreen(
         if (list.isNotEmpty()) list
         else if (activeSponsor != null && activeSponsor.isValidCurrently()) listOf(activeSponsor)
         else emptyList()
+    }
+
+    val todayDayOfWeek = remember {
+        when (Calendar.getInstance().get(Calendar.DAY_OF_WEEK)) {
+            Calendar.MONDAY -> 1
+            Calendar.TUESDAY -> 2
+            Calendar.WEDNESDAY -> 3
+            Calendar.THURSDAY -> 4
+            Calendar.FRIDAY -> 5
+            Calendar.SATURDAY -> 6
+            Calendar.SUNDAY -> 7
+            else -> 1
+        }
+    }
+    val todayDayName = remember(todayDayOfWeek) {
+        when (todayDayOfWeek) {
+            1 -> "Monday"
+            2 -> "Tuesday"
+            3 -> "Wednesday"
+            4 -> "Thursday"
+            5 -> "Friday"
+            6 -> "Saturday"
+            7 -> "Sunday"
+            else -> "Today"
+        }
+    }
+    val todayClasses = remember(routineItems, todayDayOfWeek) {
+        routineItems.filter { it.dayOfWeek == todayDayOfWeek }
     }
 
     // Pull to refresh gesture handling
@@ -270,7 +301,7 @@ fun MainDashboardScreen(
                     .graphicsLayer {
                         translationY = animatedOffsetY
                     },
-                contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 10.dp),
+                contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 2.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
             // Quick Search Card
@@ -312,6 +343,17 @@ fun MainDashboardScreen(
                 }
             }
 
+            // Today's Live Class & Routine Highlight (Appears dynamically if user has routine entries)
+            if (routineItems.isNotEmpty()) {
+                item {
+                    TodayScheduleHighlightCard(
+                        todayClasses = todayClasses,
+                        todayDayName = todayDayName,
+                        onClick = onNavigateToRoutine
+                    )
+                }
+            }
+
             // Academic Hub Section Header
             item {
                 Column(modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)) {
@@ -332,19 +374,19 @@ fun MainDashboardScreen(
                 }
             }
 
-            // 6 Grid Action Cards (2x3 Grid) matching user reference screenshot
+            // 6 Grid Action Cards (2x3 Grid) - Balanced, Aesthetic proportions
             // Row 1: Class Notes & Photos | Study Planner
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(11.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     HubGridCard(
                         title = "Class Notes &\nPhotos",
-                        subtitle = "$courseCount courses • Offline photo notes\nwith zoom & rating",
+                        subtitle = if (courseCount > 0) "$courseCount courses available" else "Photo notes & lectures",
                         icon = Icons.Default.MenuBook,
                         iconBg = Brush.linearGradient(listOf(Color(0xFF00B4D8), Color(0xFF0077B6))),
-                        badgeText = "Core",
+                        badgeText = if (courseCount > 0) "$courseCount" else null,
                         chevronTint = Color(0xFF64B5F6),
                         testTag = "hub_class_notes_card",
                         modifier = Modifier.weight(1f),
@@ -353,7 +395,7 @@ fun MainDashboardScreen(
 
                     HubGridCard(
                         title = "Study Planner",
-                        subtitle = "Plan your study, track progress\n& stay on schedule",
+                        subtitle = "Weekly plan & goals",
                         icon = Icons.Default.CalendarMonth,
                         iconBg = Brush.linearGradient(listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8))),
                         chevronTint = Color(0xFF93C5FD),
@@ -368,11 +410,11 @@ fun MainDashboardScreen(
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(11.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     HubGridCard(
                         title = "CGPA Calculator",
-                        subtitle = "Calculate your GPA &\nCGPA easily",
+                        subtitle = "Target & semester GPA",
                         icon = Icons.Default.Calculate,
                         iconBg = Brush.linearGradient(listOf(Color(0xFF00BCD4), Color(0xFF00838F))),
                         chevronTint = Color(0xFF4DD0E1),
@@ -383,7 +425,8 @@ fun MainDashboardScreen(
 
                     HubGridCard(
                         title = "Assignments",
-                        subtitle = if (upcomingAssignmentCount > 0) "$upcomingAssignmentCount due soon\nTasks & deadlines" else "Manage tasks &\ndeadlines",
+                        subtitle = if (upcomingAssignmentCount > 0) "$upcomingAssignmentCount due soon" else "Tasks & deadlines",
+                        badgeText = if (upcomingAssignmentCount > 0) "$upcomingAssignmentCount Due" else null,
                         icon = Icons.Default.Assignment,
                         iconBg = Brush.linearGradient(listOf(Color(0xFF00BFA5), Color(0xFF00796B))),
                         chevronTint = Color(0xFF4DB6AC),
@@ -398,11 +441,12 @@ fun MainDashboardScreen(
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(11.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     HubGridCard(
                         title = "Exams",
-                        subtitle = if (upcomingExamCount > 0) "$upcomingExamCount scheduled\nDates & reminders" else "Track exam dates &\nprepare better",
+                        subtitle = if (upcomingExamCount > 0) "$upcomingExamCount scheduled" else "Dates & countdown",
+                        badgeText = if (upcomingExamCount > 0) "$upcomingExamCount" else null,
                         icon = Icons.Default.EventNote,
                         iconBg = Brush.linearGradient(listOf(Color(0xFFFF9100), Color(0xFFE65100))),
                         chevronTint = Color(0xFFFFB74D),
@@ -413,7 +457,7 @@ fun MainDashboardScreen(
 
                     HubGridCard(
                         title = "Class Routine",
-                        subtitle = "Weekly Timetable &\nclass schedule",
+                        subtitle = "Weekly timetable",
                         icon = Icons.Default.CalendarMonth,
                         iconBg = Brush.linearGradient(listOf(Color(0xFF5C6BC0), Color(0xFF283593))),
                         chevronTint = Color(0xFF7986CB),
@@ -599,7 +643,7 @@ fun HubCategoryCard(
 @Composable
 fun HubGridCard(
     title: String,
-    subtitle: String,
+    subtitle: String? = null,
     icon: ImageVector,
     iconBg: Brush,
     iconTint: Color = Color.White,
@@ -610,9 +654,11 @@ fun HubGridCard(
     chevronTint: Color = Color(0xFF64B5F6),
     cardBackground: Brush? = null
 ) {
+    val hasSubtitle = !subtitle.isNullOrBlank()
+
     Card(
         modifier = modifier
-            .height(126.dp)
+            .height(125.dp)
             .clip(RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
             .testTag(testTag),
@@ -629,15 +675,19 @@ fun HubGridCard(
                 .fillMaxSize()
                 .then(
                     if (cardBackground != null) Modifier.background(cardBackground)
-                    else Modifier
+                    else Modifier.background(
+                        Brush.verticalGradient(
+                            listOf(Color(0xFF141F36), Color(0xFF0F172A))
+                        )
+                    )
                 )
-                .padding(horizontal = 13.dp, vertical = 11.dp)
+                .padding(horizontal = 14.dp, vertical = 13.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Top Row: Icon + Badge (if any)
+                // Top Row: Icon + Badge or subtle Chevron
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -645,8 +695,8 @@ fun HubGridCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
-                            .clip(RoundedCornerShape(11.dp))
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(12.dp))
                             .background(iconBg),
                         contentAlignment = Alignment.Center
                     ) {
@@ -654,7 +704,7 @@ fun HubGridCard(
                             imageVector = icon,
                             contentDescription = null,
                             tint = iconTint,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
 
@@ -671,48 +721,208 @@ fun HubGridCard(
                                 modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                             )
                         }
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = chevronTint.copy(alpha = 0.55f),
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
 
-                // Bottom Section: Title with Chevron & Subtitle
+                // Bottom Section: Title with clean 1-line subtitle
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                lineHeight = 16.sp
-                            ),
-                            color = Color.White,
-                            maxLines = 2,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            tint = chevronTint,
-                            modifier = Modifier.size(17.dp)
-                        )
-                    }
-
                     Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 10.sp,
-                            lineHeight = 13.sp
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 17.sp
                         ),
-                        color = Color(0xFF94A3B8),
+                        color = Color.White,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
+                    )
+
+                    if (hasSubtitle) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.sp,
+                                lineHeight = 14.sp
+                            ),
+                            color = Color(0xFF94A3B8),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TodayScheduleHighlightCard(
+    todayClasses: List<RoutineItem>,
+    todayDayName: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(onClick = onClick)
+            .testTag("dashboard_today_schedule_card"),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (todayClasses.isNotEmpty())
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+            else
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Header: Icon + Title + Count Badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (todayClasses.isNotEmpty()) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.secondaryContainer
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = if (todayClasses.isNotEmpty()) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Text(
+                        text = "$todayDayName's Classes",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (todayClasses.isNotEmpty()) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceContainerHighest
+                ) {
+                    Text(
+                        text = if (todayClasses.isNotEmpty()) "${todayClasses.size} ${if (todayClasses.size == 1) "Class" else "Classes"}" else "Free Day",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (todayClasses.isNotEmpty()) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
+
+            if (todayClasses.isNotEmpty()) {
+                // Show first 2 classes preview
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    todayClasses.take(2).forEach { item ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.75f))
+                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = item.courseName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (!item.roomNumber.isNullOrBlank()) {
+                                    Text(
+                                        text = "Room: ${item.roomNumber}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+                            ) {
+                                Text(
+                                    text = "${item.startTime} - ${item.endTime}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    if (todayClasses.size > 2) {
+                        Text(
+                            text = "+ ${todayClasses.size - 2} more classes • Tap to view full routine",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                        )
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "No classes scheduled for today. Enjoy your day! 🌴",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "View Routine →",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }

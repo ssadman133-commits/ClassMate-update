@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
@@ -108,6 +109,7 @@ fun TopicNotesScreen(
     onShareNote: ((Note) -> Unit)? = null,
     onShareNotes: ((List<Note>) -> Unit)? = null,
     onDeleteMultipleNotes: ((List<Note>) -> Unit)? = null,
+    onExportPdf: ((List<Note>) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -226,15 +228,45 @@ fun TopicNotesScreen(
                             )
                         }
 
-                        if (selectedNoteIds.isNotEmpty() && onDeleteMultipleNotes != null) {
-                            IconButton(
-                                onClick = { showDeleteSelectedDialog = true }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete selected",
-                                    tint = MaterialTheme.colorScheme.error
-                                )
+                        if (selectedNoteIds.isNotEmpty()) {
+                            if (onExportPdf != null) {
+                                IconButton(
+                                    onClick = {
+                                        val selectedList = notes.filter { selectedNoteIds.contains(it.id) }
+                                        onExportPdf(selectedList)
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PictureAsPdf,
+                                        contentDescription = "Export selected as PDF"
+                                    )
+                                }
+                            }
+
+                            if (onShareNotes != null) {
+                                IconButton(
+                                    onClick = {
+                                        val selectedList = notes.filter { selectedNoteIds.contains(it.id) }
+                                        onShareNotes(selectedList)
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Share,
+                                        contentDescription = "Share selected notes"
+                                    )
+                                }
+                            }
+
+                            if (onDeleteMultipleNotes != null) {
+                                IconButton(
+                                    onClick = { showDeleteSelectedDialog = true }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete selected",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             }
                         }
                     },
@@ -305,6 +337,16 @@ fun TopicNotesScreen(
                                 onDismissRequest = { showTopicMenu = false }
                             ) {
                                 if (notes.isNotEmpty()) {
+                                    if (onExportPdf != null) {
+                                        DropdownMenuItem(
+                                            text = { Text("পিডিএফ তৈরি ও শেয়ার করুন (Export PDF)") },
+                                            leadingIcon = { Icon(Icons.Default.PictureAsPdf, contentDescription = null) },
+                                            onClick = {
+                                                showTopicMenu = false
+                                                onExportPdf(notes)
+                                            }
+                                        )
+                                    }
                                     DropdownMenuItem(
                                         text = { Text("সব নোট একসাথে শেয়ার করুন") },
                                         leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },

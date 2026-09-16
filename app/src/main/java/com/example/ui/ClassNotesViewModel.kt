@@ -735,6 +735,34 @@ class ClassNotesViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun exportNotesAsPdf(notes: List<Note>, topic: Topic?, course: Course?) {
+        if (notes.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                _userMessage.value = "পিডিএফ তৈরি হচ্ছে... (Generating PDF)"
+                val context = getApplication<Application>()
+                val pdfUri = com.example.util.NoteSharingManager.exportNotesAsPdf(
+                    context = context,
+                    notes = notes,
+                    topicTitle = topic?.name ?: "Notes",
+                    courseName = course?.name ?: "Course"
+                )
+                if (pdfUri != null) {
+                    com.example.util.NoteSharingManager.launchPdfShareIntent(
+                        context = context,
+                        pdfUri = pdfUri,
+                        title = "${course?.name ?: "Class"} - ${topic?.name ?: "Notes"}"
+                    )
+                } else {
+                    _userMessage.value = "Could not generate PDF"
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _userMessage.value = "Error creating PDF export"
+            }
+        }
+    }
+
     fun deleteMultipleNotes(notes: List<Note>) {
         if (notes.isEmpty()) return
         viewModelScope.launch {

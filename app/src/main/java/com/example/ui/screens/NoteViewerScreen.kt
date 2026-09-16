@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -82,6 +83,12 @@ fun NoteViewerScreen(
         pageCount = { notes.size }
     )
 
+    var isCurrentZoomed by remember { mutableStateOf(false) }
+
+    LaunchedEffect(pagerState.currentPage) {
+        isCurrentZoomed = false
+    }
+
     val currentNote = notes.getOrNull(pagerState.currentPage) ?: notes.first()
 
     Box(
@@ -93,12 +100,19 @@ fun NoteViewerScreen(
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
-            userScrollEnabled = true
+            userScrollEnabled = !isCurrentZoomed
         ) { page ->
             val note = notes[page]
+            val isCurrent = page == pagerState.currentPage
             ZoomableImage(
                 imagePath = note.imagePath,
-                contentDescription = "Full note photo"
+                contentDescription = "Full note photo",
+                isCurrentPage = isCurrent,
+                onZoomStateChanged = { zoomed ->
+                    if (isCurrent) {
+                        isCurrentZoomed = zoomed
+                    }
+                }
             )
         }
 
@@ -289,10 +303,25 @@ fun NoteViewerScreen(
 fun ZoomableImage(
     imagePath: String,
     contentDescription: String?,
+    isCurrentPage: Boolean,
+    onZoomStateChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
+
+    // Reset zoom when navigating between notes
+    LaunchedEffect(isCurrentPage) {
+        if (!isCurrentPage) {
+            scale = 1f
+            offset = Offset.Zero
+            onZoomStateChanged(false)
+        }
+    }
+
+    LaunchedEffect(scale) {
+        onZoomStateChanged(scale > 1.05f)
+    }
 
     Box(
         modifier = modifier
@@ -300,16 +329,21 @@ fun ZoomableImage(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onDoubleTap = {
-                        scale = if (scale > 1f) 1f else 2.5f
-                        offset = Offset.Zero
+                        if (scale > 1.05f) {
+                            scale = 1f
+                            offset = Offset.Zero
+                        } else {
+                            scale = 2.5f
+                            offset = Offset.Zero
+                        }
                     }
                 )
             }
             .pointerInput(Unit) {
                 detectTransformGestures { _, pan, zoom, _ ->
                     val newScale = (scale * zoom).coerceIn(1f, 5f)
-                    val maxOffsetX = (newScale - 1f) * 500f
-                    val maxOffsetY = (newScale - 1f) * 800f
+                    val maxOffsetX = (newScale - 1f) * 600f
+                    val maxOffsetY = (newScale - 1f) * 900f
                     val newOffset = if (newScale > 1f) {
                         Offset(
                             x = (offset.x + pan.x).coerceIn(-maxOffsetX, maxOffsetX),
@@ -337,5 +371,30 @@ fun ZoomableImage(
                 },
             contentScale = ContentScale.Fit
         )
+
+        // Floating quick reset button when zoomed in
+        if (scale > 1.05f) {
+            Surface(
+                onClick = {
+                    scale = 1f
+                    offset = Offset.Zero
+                },
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.75f),
+                shadowElevation = 4.dp,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .padding(top = 68.dp, end = 16.dp)
+            ) {
+                Text(
+                    text = "🔍 1x Reset",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+            }
+        }
     }
 }
