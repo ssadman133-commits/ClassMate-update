@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -52,6 +57,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -126,6 +132,60 @@ fun MainDashboardScreen(
     val isBangladeshUser = remember(context) {
         CountryDetector.isBangladeshUser(context)
     }
+
+    // Dynamic network connectivity detection
+    fun checkInternetOnline(): Boolean {
+        return try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            val activeNetwork = cm?.activeNetwork
+            if (activeNetwork != null) {
+                val caps = cm.getNetworkCapabilities(activeNetwork)
+                caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+            } else {
+                @Suppress("DEPRECATION")
+                val activeInfo = cm?.activeNetworkInfo
+                @Suppress("DEPRECATION")
+                activeInfo?.isConnected == true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    var isOnline by remember {
+        mutableStateOf(checkInternetOnline())
+    }
+
+    DisposableEffect(context) {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                isOnline = checkInternetOnline()
+            }
+            override fun onLost(network: Network) {
+                isOnline = checkInternetOnline()
+            }
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                isOnline = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            }
+        }
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        try {
+            cm?.registerNetworkCallback(request, callback)
+        } catch (_: Throwable) {}
+
+        onDispose {
+            try {
+                cm?.unregisterNetworkCallback(callback)
+            } catch (_: Throwable) {}
+        }
+    }
+
+    // Workspace action cards keep a balanced, aesthetic proportion (122.dp)
+    // with no awkward stretching or empty voids
+    val gridCardHeight = 122.dp
 
     // Featured Hero Sponsor & Promo Banner (Only displays when admin has created real active sponsors)
     val displaySponsors = remember(activeSponsors, activeSponsor) {
@@ -351,8 +411,8 @@ fun MainDashboardScreen(
                 }
             }
 
-            // Today's Live Class & Routine Highlight (Appears dynamically if user has routine entries)
-            if (routineItems.isNotEmpty()) {
+            // Today's Live Class & Routine Highlight (Appears dynamically when online if user has routine entries)
+            if (isOnline && routineItems.isNotEmpty()) {
                 item {
                     TodayScheduleHighlightCard(
                         todayClasses = todayClasses,
@@ -397,6 +457,7 @@ fun MainDashboardScreen(
                         badgeText = if (courseCount > 0) "$courseCount" else null,
                         chevronTint = Color(0xFF64B5F6),
                         testTag = "hub_class_notes_card",
+                        cardHeight = gridCardHeight,
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateToClassNotes
                     )
@@ -408,6 +469,7 @@ fun MainDashboardScreen(
                         iconBg = Brush.linearGradient(listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8))),
                         chevronTint = Color(0xFF93C5FD),
                         testTag = "hub_study_planner_card",
+                        cardHeight = gridCardHeight,
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateToStudyPlanner
                     )
@@ -427,6 +489,7 @@ fun MainDashboardScreen(
                         iconBg = Brush.linearGradient(listOf(Color(0xFF00BCD4), Color(0xFF00838F))),
                         chevronTint = Color(0xFF4DD0E1),
                         testTag = "hub_cgpa_card",
+                        cardHeight = gridCardHeight,
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateToCgpa
                     )
@@ -439,6 +502,7 @@ fun MainDashboardScreen(
                         iconBg = Brush.linearGradient(listOf(Color(0xFF00BFA5), Color(0xFF00796B))),
                         chevronTint = Color(0xFF4DB6AC),
                         testTag = "hub_assignments_card",
+                        cardHeight = gridCardHeight,
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateToAssignments
                     )
@@ -459,6 +523,7 @@ fun MainDashboardScreen(
                         iconBg = Brush.linearGradient(listOf(Color(0xFFFF9100), Color(0xFFE65100))),
                         chevronTint = Color(0xFFFFB74D),
                         testTag = "hub_exams_card",
+                        cardHeight = gridCardHeight,
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateToExams
                     )
@@ -470,34 +535,53 @@ fun MainDashboardScreen(
                         iconBg = Brush.linearGradient(listOf(Color(0xFF5C6BC0), Color(0xFF283593))),
                         chevronTint = Color(0xFF7986CB),
                         testTag = "hub_routine_card",
+                        cardHeight = gridCardHeight,
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateToRoutine
                     )
                 }
             }
 
-            // 5. Smart Monetization System:
-            // - Bangladesh user with active sponsors -> Show Local Sponsor Carousel
-            // - Bangladesh user with no active sponsors -> Show AdMob Banner
-            // - Foreign user -> Show AdMob Banner
+            // 5. Smart Monetization & Dynamic Academic Overview:
+            // - If user/admin has active sponsors and is online: Displays Sponsor Carousel (148.dp)
+            // - If offline: Directly renders Today's Academic Agenda Banner (148.dp)
+            // - If online with no active sponsors: Displays AdMob with Today's Agenda fallback (148.dp)
+            // This guarantees ZERO blank gaps, ZERO empty space, and ZERO layout shifts under all network states!
             item {
-                if (isBangladeshUser) {
-                    if (displaySponsors.isNotEmpty()) {
-                        CompactSponsorCarousel(
-                            sponsors = displaySponsors,
-                            onSponsorClick = onSponsorClick,
-                            onSponsorImpression = onSponsorImpression,
-                            slideIntervalMillis = 4000L,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    } else {
-                        AdMobBannerAd(
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
+                if (isOnline && displaySponsors.isNotEmpty()) {
+                    CompactSponsorCarousel(
+                        sponsors = displaySponsors,
+                        onSponsorClick = onSponsorClick,
+                        onSponsorImpression = onSponsorImpression,
+                        slideIntervalMillis = 4000L,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                } else if (!isOnline) {
+                    TodayAcademicAgendaBanner(
+                        todayClasses = todayClasses,
+                        todayDayName = todayDayName,
+                        assignments = assignments,
+                        exams = exams,
+                        onNavigateToRoutine = onNavigateToRoutine,
+                        onNavigateToAssignments = onNavigateToAssignments,
+                        onNavigateToExams = onNavigateToExams,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
                 } else {
                     AdMobBannerAd(
-                        modifier = Modifier.padding(top = 2.dp)
+                        modifier = Modifier.padding(top = 2.dp),
+                        fallback = {
+                            TodayAcademicAgendaBanner(
+                                todayClasses = todayClasses,
+                                todayDayName = todayDayName,
+                                assignments = assignments,
+                                exams = exams,
+                                onNavigateToRoutine = onNavigateToRoutine,
+                                onNavigateToAssignments = onNavigateToAssignments,
+                                onNavigateToExams = onNavigateToExams,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
                     )
                 }
             }
@@ -673,13 +757,14 @@ fun HubGridCard(
     modifier: Modifier = Modifier,
     badgeText: String? = null,
     chevronTint: Color = Color(0xFF64B5F6),
-    cardBackground: Brush? = null
+    cardBackground: Brush? = null,
+    cardHeight: androidx.compose.ui.unit.Dp = 125.dp
 ) {
     val hasSubtitle = !subtitle.isNullOrBlank()
 
     Card(
         modifier = modifier
-            .height(125.dp)
+            .height(cardHeight)
             .clip(RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
             .testTag(testTag),
@@ -947,6 +1032,348 @@ fun TodayScheduleHighlightCard(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Premium Offline Academic Agenda Banner:
+ * Occupies the exact same dimensions (148.dp height, 18.dp corner radius) as the Sponsor Carousel & AdMob Banner.
+ * Shows today's classes, imminent deadlines, upcoming exams, and live academic status pills.
+ */
+@Composable
+fun TodayAcademicAgendaBanner(
+    todayClasses: List<RoutineItem>,
+    todayDayName: String,
+    assignments: List<Assignment>,
+    exams: List<Exam>,
+    onNavigateToRoutine: () -> Unit,
+    onNavigateToAssignments: () -> Unit,
+    onNavigateToExams: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val pendingAssignments = remember(assignments) {
+        assignments.filter { !it.isCompleted }.sortedBy { it.dueDate }
+    }
+    val upcomingExams = remember(exams) {
+        val now = System.currentTimeMillis() - 86400000L
+        exams.filter { it.examDate >= now }.sortedBy { it.examDate }
+    }
+
+    // Determine primary destination when clicking the overall card
+    val onClickAction = remember(todayClasses, pendingAssignments, upcomingExams) {
+        when {
+            todayClasses.isNotEmpty() -> onNavigateToRoutine
+            pendingAssignments.isNotEmpty() -> onNavigateToAssignments
+            upcomingExams.isNotEmpty() -> onNavigateToExams
+            else -> onNavigateToRoutine
+        }
+    }
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(148.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(onClick = onClickAction)
+            .testTag("offline_academic_agenda_banner"),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF0F172A) // Dark Slate Blue / Midnight matching app theme
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = Color(0xFF1E293B)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Subtle aesthetic background watermark icon
+            Icon(
+                imageVector = Icons.Default.School,
+                contentDescription = null,
+                tint = Color(0xFF38BDF8).copy(alpha = 0.05f),
+                modifier = Modifier
+                    .size(130.dp)
+                    .align(Alignment.CenterEnd)
+                    .offset(x = 20.dp, y = 10.dp)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Top Header Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(Color(0xFF0284C7), Color(0xFF0369A1))
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.EventNote,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+
+                        Text(
+                            text = "$todayDayName's Agenda",
+                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFF1F5F9)
+                        )
+
+                        // Status chip
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (todayClasses.isNotEmpty()) Color(0xFF0369A1).copy(alpha = 0.35f) else Color(0xFF1E293B)
+                        ) {
+                            Text(
+                                text = if (todayClasses.isNotEmpty()) "${todayClasses.size} ${if (todayClasses.size == 1) "Class" else "Classes"}" else "No Classes",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (todayClasses.isNotEmpty()) Color(0xFF38BDF8) else Color(0xFF94A3B8),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = "View",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF38BDF8)
+                        )
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = Color(0xFF38BDF8),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+
+                // Middle Spotlight Section
+                if (todayClasses.isNotEmpty()) {
+                    val firstClass = todayClasses[0]
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF1E293B).copy(alpha = 0.7f))
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = firstClass.courseName,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            val roomText = if (!firstClass.roomNumber.isNullOrBlank()) "Room: ${firstClass.roomNumber}" else "Class Today"
+                            Text(
+                                text = roomText,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                color = Color(0xFF94A3B8)
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF0F172A).copy(alpha = 0.8f),
+                            border = BorderStroke(1.dp, Color(0xFF334155))
+                        ) {
+                            Text(
+                                text = "${firstClass.startTime} - ${firstClass.endTime}",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF38BDF8),
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+                } else if (upcomingExams.isNotEmpty() || pendingAssignments.isNotEmpty()) {
+                    val nextExam = upcomingExams.firstOrNull()
+                    val nextAssignment = pendingAssignments.firstOrNull()
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF1E293B).copy(alpha = 0.7f))
+                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (nextExam != null) {
+                            val daysUntil = ((nextExam.examDate - System.currentTimeMillis()) / (1000 * 60 * 60 * 24)).coerceAtLeast(0)
+                            Icon(
+                                imageVector = Icons.Default.EventNote,
+                                contentDescription = null,
+                                tint = Color(0xFFFF9100),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Exam: ${nextExam.courseName} (${nextExam.title})",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.5.sp),
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = if (daysUntil == 0L) "Happening Today!" else "Scheduled in $daysUntil day${if (daysUntil > 1) "s" else ""}",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
+                                    color = if (daysUntil <= 1) Color(0xFFFF9100) else Color(0xFF94A3B8)
+                                )
+                            }
+                        } else if (nextAssignment != null) {
+                            val daysUntil = ((nextAssignment.dueDate - System.currentTimeMillis()) / (1000 * 60 * 60 * 24)).coerceAtLeast(0)
+                            Icon(
+                                imageVector = Icons.Default.Assignment,
+                                contentDescription = null,
+                                tint = Color(0xFF4ADE80),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Assignment: ${nextAssignment.title}",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.5.sp),
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "${nextAssignment.courseName} • Due in $daysUntil day${if (daysUntil > 1) "s" else ""}",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
+                                    color = Color(0xFF94A3B8)
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    // No classes or urgent pending tasks
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF1E293B).copy(alpha = 0.5f))
+                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = Color(0xFF38BDF8),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "No classes scheduled today! Great time to study or relax.",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                            color = Color(0xFF94A3B8),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                // Bottom 3 Quick Status Indicators
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AcademicStatPill(
+                        label = "Classes",
+                        value = "${todayClasses.size}",
+                        accentColor = Color(0xFF38BDF8),
+                        modifier = Modifier.weight(1f)
+                    )
+                    AcademicStatPill(
+                        label = "Tasks",
+                        value = "${pendingAssignments.size}",
+                        accentColor = Color(0xFF4ADE80),
+                        modifier = Modifier.weight(1f)
+                    )
+                    AcademicStatPill(
+                        label = "Exams",
+                        value = "${upcomingExams.size}",
+                        accentColor = Color(0xFFFF9100),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AcademicStatPill(
+    label: String,
+    value: String,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = Color(0xFF1E293B).copy(alpha = 0.6f),
+        border = BorderStroke(0.5.dp, Color(0xFF334155).copy(alpha = 0.5f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(accentColor)
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                color = Color(0xFF94A3B8),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import java.io.File
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -71,6 +72,13 @@ fun isRunningOnEmulator(): Boolean {
             || "google_sdk" == product
             || hardware.contains("goldfish", ignoreCase = true)
             || hardware.contains("ranchu", ignoreCase = true)
+            || hardware.contains("cuttlefish", ignoreCase = true)
+            || product.contains("cuttlefish", ignoreCase = true)
+            || device.contains("cuttlefish", ignoreCase = true)
+            || hardware.contains("qemu", ignoreCase = true)
+            || product.contains("sdk", ignoreCase = true)
+            || product.contains("emulator", ignoreCase = true)
+            || !File("/dev/dri").exists()
 }
 
 private fun isDeviceOnline(context: Context): Boolean {
@@ -94,7 +102,8 @@ private fun isDeviceOnline(context: Context): Boolean {
 fun AdMobBannerAd(
     modifier: Modifier = Modifier,
     adUnitId: String = AdMobConstants.BANNER_AD_UNIT_ID,
-    bannerHeight: Dp = 148.dp
+    bannerHeight: Dp = 148.dp,
+    fallback: (@Composable () -> Unit)? = null
 ) {
     val context = LocalContext.current
     val isOnline = remember(context) { isDeviceOnline(context) }
@@ -109,8 +118,22 @@ fun AdMobBannerAd(
         }
     }
 
-    // AUTO-HIDE: If offline or failed to load, collapse with zero height & zero gap
+    val isEmulator = remember { isRunningOnEmulator() }
+
+    // If running in an emulator/container without DRM hardware rendering or offline, immediately show fallback
+    if ((isEmulator || !isOnline || adFailedToLoad) && fallback != null) {
+        fallback()
+        return
+    }
+
+    // AUTO-HIDE: If offline or failed to load and no fallback, collapse cleanly
     if ((!isOnline || adFailedToLoad) && !isAdLoaded) {
+        return
+    }
+
+    // If ad is not loaded yet and fallback is provided, render fallback immediately to avoid any blank gap
+    if (!isAdLoaded && fallback != null) {
+        fallback()
         return
     }
 
