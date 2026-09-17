@@ -32,7 +32,7 @@ object NoteSharingManager {
 
     private const val SHARE_CODE_PREFIX = "CMNOTE:"
     const val DEFAULT_APP_DOWNLOAD_LINK = "https://ais-pre-qrm734r2fg5sgncyghbqi4-206919312131.asia-southeast1.run.app"
-    private const val DEEP_LINK_BASE = "https://ais-pre-qrm734r2fg5sgncyghbqi4-206919312131.asia-southeast1.run.app/note"
+    private const val DEEP_LINK_BASE = "classmate://note"
 
     private fun urlEncode(value: String): String {
         return try {
@@ -131,22 +131,22 @@ object NoteSharingManager {
             noteCount = noteCount
         )
 
-        // 3. Attractive, compact, viral Bengali message
+        // 3. Attractive, compact, professional English share message
         val shareMessage = buildString {
             append("📚 *Course:* $courseName")
             if (!courseCode.isNullOrBlank()) append(" ($courseCode)")
             append("\n📌 *Topic:* $topicName")
             if (noteCount > 1) {
-                append("\n📸 *${noteCount}টি ক্লাসনোটের ছবি সংযুক্ত করা হয়েছে*")
+                append("\n📸 *$noteCount class note photos attached*")
             } else if (!firstCaption.isNullOrBlank()) {
                 append("\n📝 \"$firstCaption\"")
             }
-            append("\n⭐ গুরুত্ব: ${"★".repeat(avgImportance)}")
+            append("\n⭐ Priority: ${"★".repeat(avgImportance)}")
             append("\n\n")
-            append("🔥 দোস্ত, ক্লাসের গুরুত্বপূর্ণ নোট ও ছবি ClassMate অ্যাপে দিয়েছি!\n")
-            append("📲 পুরো নোট ফোনে পেতে ও সাজিয়ে রাখতে অ্যাপটি ডাউনলোড করো:\n")
+            append("Shared via ClassMate — Student Productivity Suite.\n")
+            append("📲 Download the app to organize and view all course notes:\n")
             append("👉 $DEFAULT_APP_DOWNLOAD_LINK\n\n")
-            append("⚡ *অ্যাপে সরাসরি ওপেন ও সেভ করার লিংক:*\n")
+            append("⚡ *Direct Link to Open & Save in ClassMate:*\n")
             append(deepLink)
         }
 
@@ -199,7 +199,7 @@ object NoteSharingManager {
             }
         }
 
-        val chooser = Intent.createChooser(intent, "ক্লাসনোট শেয়ার করুন (Share Notes)")
+        val chooser = Intent.createChooser(intent, "Share Class Notes")
         chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(chooser)
     }

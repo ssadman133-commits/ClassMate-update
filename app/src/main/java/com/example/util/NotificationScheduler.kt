@@ -178,8 +178,8 @@ object NotificationScheduler {
             context = context,
             requestCode = 99999,
             triggerAtMillis = triggerTime,
-            title = "ClassMate অ্যালার্ট টেস্ট",
-            message = "নোটিফিকেশন সিস্টেম নিখুঁতভাবে কাজ করছে! অ্যাপ বন্ধ থাকলেও আপনি সময়মতো রিমাইন্ডার পাবেন।"
+            title = "ClassMate Alert Test",
+            message = "Notification system is working properly! You will receive reminders on time even when the app is closed."
         )
     }
 

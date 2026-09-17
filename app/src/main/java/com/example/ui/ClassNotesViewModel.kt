@@ -739,7 +739,7 @@ class ClassNotesViewModel(application: Application) : AndroidViewModel(applicati
         if (notes.isEmpty()) return
         viewModelScope.launch {
             try {
-                _userMessage.value = "পিডিএফ তৈরি হচ্ছে... (Generating PDF)"
+                _userMessage.value = "Generating PDF export..."
                 val context = getApplication<Application>()
                 val pdfUri = com.example.util.NoteSharingManager.exportNotesAsPdf(
                     context = context,
@@ -792,14 +792,14 @@ class ClassNotesViewModel(application: Application) : AndroidViewModel(applicati
                     val activeTopicId = _selectedTopicId.value
                     if (activeTopicId != null) {
                         _stagedPhotos.value = StagedPhotos(imagePaths = savedPaths, topicId = activeTopicId)
-                        _userMessage.value = "${savedPaths.size}টি ছবি যুক্ত করার জন্য প্রস্তুত!"
+                        _userMessage.value = "${savedPaths.size} photos ready to add!"
                     } else {
                         val activeCourseId = _selectedCourseId.value ?: repository.insertCourse("General Course", "GEN-101")
                         val targetTopic = repository.getTopicByCourseAndName(activeCourseId, "Shared Notes")
                         val topicId = targetTopic?.id ?: repository.insertTopic(activeCourseId, "Shared Notes")
                         _stagedPhotos.value = StagedPhotos(imagePaths = savedPaths, topicId = topicId)
                         navigateToTopic(topicId, activeCourseId)
-                        _userMessage.value = "${savedPaths.size}টি ছবি প্রস্তুত! সেভ করতে গুরুত্ব নির্বাচন করুন।"
+                        _userMessage.value = "${savedPaths.size} photos ready! Select importance to save."
                     }
                 }
             } catch (e: Exception) {
@@ -814,7 +814,7 @@ class ClassNotesViewModel(application: Application) : AndroidViewModel(applicati
             try {
                 val data = com.example.util.NoteSharingManager.parseShareCode(codeOrText)
                 if (data == null) {
-                    _userMessage.value = "লিংক বা কোডটি সঠিক নয়! দয়া করে আবার চেষ্টা করুন।"
+                    _userMessage.value = "Invalid share code or link. Please try again."
                     onComplete(false)
                     return@launch
                 }
@@ -828,7 +828,7 @@ class ClassNotesViewModel(application: Application) : AndroidViewModel(applicati
                     navigateToTopic(topicId, course.id)
                 }
 
-                _userMessage.value = "'${data.courseName}' কোর্সে '${data.topicName}' যুক্ত হয়েছে!"
+                _userMessage.value = "Imported '${data.topicName}' into '${data.courseName}'!"
                 onComplete(true)
             } catch (e: Exception) {
                 e.printStackTrace()

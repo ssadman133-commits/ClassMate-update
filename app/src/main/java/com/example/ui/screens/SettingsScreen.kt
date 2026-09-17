@@ -411,7 +411,7 @@ fun SettingsScreen(
                                 NotificationScheduler.scheduleTestNotification(context, 5)
                                 Toast.makeText(
                                     context,
-                                    "টেস্ট অ্যালার্ট ৫ সেকেন্ডের মধ্যে আসবে! এখনই অ্যাপ মিনিমাইজ করুন।",
+                                    "Test alert will arrive in 5 seconds! Minimize the app now.",
                                     Toast.LENGTH_LONG
                                 ).show()
                             },

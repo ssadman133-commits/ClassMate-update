@@ -171,8 +171,8 @@ fun TopicNotesScreen(
 
     if (showDeleteSelectedDialog) {
         ConfirmDeleteDialog(
-            title = "মুছে ফেলতে চান?",
-            message = "সিলেক্ট করা ${selectedNoteIds.size}টি ক্লাসনোটের ছবি স্থায়ীভাবে মুছে যাবে।",
+            title = "Delete Selected Notes?",
+            message = "${selectedNoteIds.size} note photo(s) will be permanently deleted.",
             onDismiss = { showDeleteSelectedDialog = false },
             onConfirm = {
                 showDeleteSelectedDialog = false
@@ -192,7 +192,7 @@ fun TopicNotesScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = "${selectedNoteIds.size}টি নোট সিলেক্টেড",
+                            text = "${selectedNoteIds.size} notes selected",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -339,7 +339,7 @@ fun TopicNotesScreen(
                                 if (notes.isNotEmpty()) {
                                     if (onExportPdf != null) {
                                         DropdownMenuItem(
-                                            text = { Text("পিডিএফ তৈরি ও শেয়ার করুন (Export PDF)") },
+                                            text = { Text("Export & Share as PDF") },
                                             leadingIcon = { Icon(Icons.Default.PictureAsPdf, contentDescription = null) },
                                             onClick = {
                                                 showTopicMenu = false
@@ -348,7 +348,7 @@ fun TopicNotesScreen(
                                         )
                                     }
                                     DropdownMenuItem(
-                                        text = { Text("সব নোট একসাথে শেয়ার করুন") },
+                                        text = { Text("Share All Notes") },
                                         leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
                                         onClick = {
                                             showTopicMenu = false
@@ -407,7 +407,7 @@ fun TopicNotesScreen(
                         }
                     },
                     icon = { Icon(Icons.Default.Share, contentDescription = null) },
-                    text = { Text("শেয়ার করুন (${selectedNoteIds.size}টি নোট)") },
+                    text = { Text("Share (${selectedNoteIds.size} ${if (selectedNoteIds.size == 1) "note" else "notes"})") },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.testTag("share_selected_fab")
@@ -450,7 +450,7 @@ fun TopicNotesScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (isSelectionMode) "ছবিগুলো সিলেক্ট করুন" else "Saved Notes",
+                            text = if (isSelectionMode) "Select Photos to Share / Delete" else "Saved Notes",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface

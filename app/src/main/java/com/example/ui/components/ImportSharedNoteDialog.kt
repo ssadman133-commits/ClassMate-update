@@ -40,7 +40,7 @@ fun ImportSharedNoteDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "বন্ধুর পাঠানো নোট যোগ করো",
+                text = "Import Shared Note",
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleMedium
             )
@@ -48,7 +48,7 @@ fun ImportSharedNoteDialog(
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "বন্ধু বা সহপাঠীর শেয়ার করা নোটের লিংক বা মেসেজটি এখানে পেস্ট (Paste) করো:",
+                    text = "Paste the shared note link or message here to save it to your workspace:",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -59,7 +59,7 @@ fun ImportSharedNoteDialog(
                     onValueChange = { shareCodeText = it },
                     placeholder = {
                         Text(
-                            "শেয়ার করা লিংক বা মেসেজ পেস্ট করুন...",
+                            "Paste shared note link or message...",
                             style = MaterialTheme.typography.bodySmall
                         )
                     },
@@ -83,7 +83,7 @@ fun ImportSharedNoteDialog(
                 ) {
                     Icon(Icons.Default.ContentPaste, contentDescription = null)
                     Spacer(modifier = Modifier.padding(start = 6.dp))
-                    Text("ক্লিপবোর্ড থেকে পেস্ট করুন (Paste from Clipboard)")
+                    Text("Paste from Clipboard")
                 }
             }
         },
@@ -99,12 +99,12 @@ fun ImportSharedNoteDialog(
             ) {
                 Icon(Icons.Default.Download, contentDescription = null)
                 Spacer(modifier = Modifier.padding(start = 4.dp))
-                Text("ইমপোর্ট ও সেভ করুন")
+                Text("Import & Save")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("বাতিল")
+                Text("Cancel")
             }
         }
     )
