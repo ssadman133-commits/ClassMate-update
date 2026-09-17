@@ -55,6 +55,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.AutoAwesome
 import android.graphics.BitmapFactory
 import android.util.Base64
 import androidx.compose.foundation.Image
@@ -192,11 +196,17 @@ fun CompactSponsorCarousel(
                                     .memoryCacheKey(sponsor.imageUrl)
                                     .build()
                             }
-                            AsyncImage(
+                            SubcomposeAsyncImage(
                                 model = imageRequest,
                                 contentDescription = sponsor.name,
                                 modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Crop,
+                                loading = {
+                                    SponsorOfflineCardContent(sponsor = sponsor)
+                                },
+                                error = {
+                                    SponsorOfflineCardContent(sponsor = sponsor)
+                                }
                             )
                         }
                     }
@@ -214,11 +224,26 @@ fun CompactSponsorCarousel(
                                 .fillMaxWidth(0.55f)
                                 .align(Alignment.CenterEnd)
                         ) {
-                            AsyncImage(
+                            SubcomposeAsyncImage(
                                 model = DEFAULT_STUDENT_BANNER_IMAGE,
                                 contentDescription = sponsor.name,
                                 modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Crop,
+                                error = {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color(0xFF1E293B)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.School,
+                                            contentDescription = null,
+                                            tint = Color(0xFF38BDF8).copy(alpha = 0.18f),
+                                            modifier = Modifier.size(72.dp)
+                                        )
+                                    }
+                                }
                             )
 
                             // Dark gradient overlay extending from left to right
@@ -352,5 +377,135 @@ fun CompactSponsorBanner(
         onSponsorClick = { url, _ -> onSponsorClick(url) },
         modifier = modifier
     )
+}
+
+/**
+ * Beautiful offline fallback card that ensures zero black/empty space when offline.
+ */
+@Composable
+private fun SponsorOfflineCardContent(sponsor: CachedSponsor) {
+    val displayName = if (sponsor.name.isNotBlank()) sponsor.name else "Educational Partner"
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.horizontalGradient(
+                    colors = listOf(
+                        Color(0xFF0F172A),
+                        Color(0xFF1E293B),
+                        Color(0xFF0F172A)
+                    )
+                )
+            )
+    ) {
+        // Decorative background watermark icon
+        Icon(
+            imageVector = Icons.Default.School,
+            contentDescription = null,
+            tint = Color(0xFF38BDF8).copy(alpha = 0.08f),
+            modifier = Modifier
+                .size(130.dp)
+                .align(Alignment.CenterEnd)
+                .padding(end = 8.dp)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 18.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF0284C7).copy(alpha = 0.25f),
+                    border = BorderStroke(0.6.dp, Color(0xFF38BDF8).copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Verified,
+                            contentDescription = null,
+                            tint = Color(0xFF38BDF8),
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Text(
+                            text = "Featured Sponsor",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFBAE6FD)
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = Color.White.copy(alpha = 0.08f)
+                ) {
+                    Text(
+                        text = "Student Offer",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp),
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = displayName,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 16.sp,
+                        letterSpacing = 0.2.sp
+                    ),
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "Special educational support & resources for students",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                    color = Color(0xFF94A3B8),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White.copy(alpha = 0.16f),
+                border = BorderStroke(0.6.dp, Color.White.copy(alpha = 0.3f)),
+                modifier = Modifier.clip(RoundedCornerShape(12.dp))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Text(
+                        text = "Tap to Learn More",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(9.dp)
+                    )
+                }
+            }
+        }
+    }
 }
 

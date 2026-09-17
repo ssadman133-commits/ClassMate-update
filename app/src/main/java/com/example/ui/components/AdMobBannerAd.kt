@@ -1,12 +1,15 @@
 package com.example.ui.components
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,12 +31,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.BuildConfig
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
@@ -43,11 +48,47 @@ import com.google.android.gms.ads.LoadAdError
 object AdMobConstants {
     const val APP_ID = "ca-app-pub-8519955082545459~1152490013"
     const val BANNER_AD_UNIT_ID = "ca-app-pub-8519955082545459/4440998339"
+    // Google's official sample banner ad unit ID for development and emulators
+    const val TEST_BANNER_AD_UNIT_ID = "ca-app-pub-3940256099942544/6300978111"
+}
+
+fun isRunningOnEmulator(): Boolean {
+    val fingerprint = Build.FINGERPRINT ?: ""
+    val model = Build.MODEL ?: ""
+    val manufacturer = Build.MANUFACTURER ?: ""
+    val brand = Build.BRAND ?: ""
+    val device = Build.DEVICE ?: ""
+    val product = Build.PRODUCT ?: ""
+    val hardware = Build.HARDWARE ?: ""
+
+    return fingerprint.startsWith("generic")
+            || fingerprint.startsWith("unknown")
+            || model.contains("google_sdk", ignoreCase = true)
+            || model.contains("Emulator", ignoreCase = true)
+            || model.contains("Android SDK built for x86", ignoreCase = true)
+            || manufacturer.contains("Genymotion", ignoreCase = true)
+            || (brand.startsWith("generic") && device.startsWith("generic"))
+            || "google_sdk" == product
+            || hardware.contains("goldfish", ignoreCase = true)
+            || hardware.contains("ranchu", ignoreCase = true)
+}
+
+private fun isDeviceOnline(context: Context): Boolean {
+    return try {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        val network = connectivityManager?.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    } catch (_: Throwable) {
+        true
+    }
 }
 
 /**
- * Large Hero AdMob Banner matching the exact height (148.dp) and visual style of the
- * sponsor banner carousel, ensuring seamless layout consistency.
+ * Smart Auto-Hiding AdMob Banner:
+ * - If user is offline or ad fails to load: Auto-hides completely (0 height, 0 gap).
+ * - If user turns off network while ad was loaded: Stays seamlessly displayed without flickering.
+ * - Safely handles emulators and devices without crashing or JavaScript errors.
  */
 @Composable
 fun AdMobBannerAd(
@@ -55,17 +96,23 @@ fun AdMobBannerAd(
     adUnitId: String = AdMobConstants.BANNER_AD_UNIT_ID,
     bannerHeight: Dp = 148.dp
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val hasPlayServices = remember(context) {
-        try {
-            com.google.android.gms.common.GoogleApiAvailability.getInstance()
-                .isGooglePlayServicesAvailable(context) == com.google.android.gms.common.ConnectionResult.SUCCESS
-        } catch (_: Throwable) {
-            false
-        }
-    }
+    val context = LocalContext.current
+    val isOnline = remember(context) { isDeviceOnline(context) }
     var isAdLoaded by remember { mutableStateOf(false) }
     var adFailedToLoad by remember { mutableStateOf(false) }
+
+    val effectiveAdUnitId = remember(adUnitId) {
+        if (isRunningOnEmulator() || BuildConfig.DEBUG) {
+            AdMobConstants.TEST_BANNER_AD_UNIT_ID
+        } else {
+            adUnitId
+        }
+    }
+
+    // AUTO-HIDE: If offline or failed to load, collapse with zero height & zero gap
+    if ((!isOnline || adFailedToLoad) && !isAdLoaded) {
+        return
+    }
 
     Card(
         modifier = modifier
@@ -75,7 +122,7 @@ fun AdMobBannerAd(
             .testTag("admob_banner_card"),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF0F172A) // Matches exact sponsor carousel Midnight Slate theme
+            containerColor = Color(0xFF0F172A)
         ),
         border = BorderStroke(
             width = 1.dp,
@@ -146,20 +193,24 @@ fun AdMobBannerAd(
                     )
                 }
 
-                // Center Ad Area - Loads Large Banner (320x100) or Adaptive/Standard Banner (320x50)
+                // Center Ad Area
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (hasPlayServices) {
-                        AndroidView(
-                            modifier = Modifier.fillMaxWidth(),
-                            factory = { context ->
-                                AdView(context).apply {
+                    AndroidView(
+                        modifier = Modifier.fillMaxWidth(),
+                        factory = { ctx ->
+                            try {
+                                AdView(ctx).apply {
+                                    if (isRunningOnEmulator()) {
+                                        // Prevent Mesa GPU rendernode errors and video JS crashes on emulators
+                                        setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+                                    }
                                     setAdSize(AdSize.LARGE_BANNER)
-                                    this.adUnitId = adUnitId
+                                    this.adUnitId = effectiveAdUnitId
                                     adListener = object : AdListener() {
                                         override fun onAdLoaded() {
                                             isAdLoaded = true
@@ -171,38 +222,23 @@ fun AdMobBannerAd(
                                                 setAdSize(AdSize.BANNER)
                                                 loadAd(AdRequest.Builder().build())
                                             } else {
-                                                isAdLoaded = false
-                                                adFailedToLoad = true
+                                                if (!isAdLoaded) {
+                                                    adFailedToLoad = true
+                                                }
                                             }
                                         }
                                     }
                                     loadAd(AdRequest.Builder().build())
                                 }
+                            } catch (_: Throwable) {
+                                adFailedToLoad = true
+                                android.view.View(ctx)
                             }
-                        )
-                    } else {
-                        // Environment without Play Services (e.g. cloud emulator preview)
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "Google AdMob Network",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFE2E8F0)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Ad ready • Live on Play Store devices with GMS",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                color = Color(0xFF94A3B8)
-                            )
                         }
-                    }
+                    )
                 }
 
-                // Bottom subtle indicator pill matching carousel pagination aesthetic
+                // Bottom indicator pill
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

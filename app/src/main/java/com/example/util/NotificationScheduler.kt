@@ -25,28 +25,34 @@ object NotificationScheduler {
     const val EXTRA_NOTIFICATION_ID = "extra_notification_id"
 
     fun createNotificationChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            val audioAttributes = AudioAttributes.Builder()
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
-                .build()
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                val audioAttributes = AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                    .build()
 
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Reminders for upcoming assignments, exams, and classes"
-                enableVibration(true)
-                vibrationPattern = longArrayOf(0, 400, 200, 400)
-                enableLights(true)
-                setShowBadge(true)
-                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
-                setSound(soundUri, audioAttributes)
+                val channel = NotificationChannel(
+                    CHANNEL_ID,
+                    CHANNEL_NAME,
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Reminders for upcoming assignments, exams, and classes"
+                    enableVibration(true)
+                    vibrationPattern = longArrayOf(0, 400, 200, 400)
+                    enableLights(true)
+                    setShowBadge(true)
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                    if (soundUri != null) {
+                        setSound(soundUri, audioAttributes)
+                    }
+                }
+                val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                manager?.createNotificationChannel(channel)
             }
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-            manager?.createNotificationChannel(channel)
+        } catch (_: Throwable) {
+            // Graceful fallback for environments with missing audio services
         }
     }
 

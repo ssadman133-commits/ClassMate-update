@@ -76,8 +76,8 @@ import java.util.Locale
 data class CourseEntry(
     var id: Long = System.currentTimeMillis(),
     var name: String = "",
-    var credit: String = "3.0",
-    var grade: String = "A"
+    var credit: String = "",
+    var grade: String = ""
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,13 +93,12 @@ fun CgpaCalculatorScreen(
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    // Course entries list
+    // Course entries list - fresh clean state starting at 0
     val courses = remember {
         mutableStateListOf(
-            CourseEntry(id = 1, name = "Course 1", credit = "3.0", grade = "A+"),
-            CourseEntry(id = 2, name = "Course 2", credit = "3.0", grade = "A"),
-            CourseEntry(id = 3, name = "Course 3", credit = "3.0", grade = "A-"),
-            CourseEntry(id = 4, name = "Course 4", credit = "1.5", grade = "A+")
+            CourseEntry(id = 1, name = "", credit = "", grade = ""),
+            CourseEntry(id = 2, name = "", credit = "", grade = ""),
+            CourseEntry(id = 3, name = "", credit = "", grade = "")
         )
     }
 
@@ -111,20 +110,20 @@ fun CgpaCalculatorScreen(
     var showSaveDialog by remember { mutableStateOf(false) }
     var semesterNameInput by remember { mutableStateOf("Semester 1") }
 
-    // Current Semester GPA calculation
+    // Current Semester GPA calculation (only calculated when credit and grade are provided)
     val semesterStats by remember(gradeScale) {
         derivedStateOf {
             var totalCredits = 0.0
             var totalPoints = 0.0
             for (c in courses) {
                 val cr = c.credit.toDoubleOrNull() ?: 0.0
-                val pt = gradeScale.getPointForGrade(c.grade)
-                if (cr > 0.0) {
+                if (c.grade.isNotBlank() && cr > 0.0) {
+                    val pt = gradeScale.getPointForGrade(c.grade)
                     totalCredits += cr
                     totalPoints += (cr * pt)
                 }
             }
-            val gpa = if (totalCredits > 0) totalPoints / totalCredits else 0.0
+            val gpa = if (totalCredits > 0.0) totalPoints / totalCredits else 0.0
             Pair(gpa, totalCredits)
         }
     }
@@ -142,7 +141,7 @@ fun CgpaCalculatorScreen(
                 val totalPoints = (prevCgpa * prevCredits) + (curGpa * curCredits)
                 totalPoints / combinedCredits
             } else {
-                curGpa
+                0.0
             }
         }
     }
@@ -251,7 +250,7 @@ fun CgpaCalculatorScreen(
                                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                         )
                                         Text(
-                                            text = String.format(Locale.US, "%.2f", semesterStats.first),
+                                            text = if (semesterStats.second > 0.0) String.format(Locale.US, "%.2f", semesterStats.first) else "0.00",
                                             style = MaterialTheme.typography.headlineLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -265,7 +264,7 @@ fun CgpaCalculatorScreen(
                                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                         )
                                         Text(
-                                            text = String.format(Locale.US, "%.1f", semesterStats.second),
+                                            text = if (semesterStats.second > 0.0) String.format(Locale.US, "%.1f", semesterStats.second) else "0.0",
                                             style = MaterialTheme.typography.titleLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -310,6 +309,7 @@ fun CgpaCalculatorScreen(
                                             semesterNameInput = "Semester ${semesterHistory.size + 1}"
                                             showSaveDialog = true
                                         },
+                                        enabled = semesterStats.second > 0.0,
                                         modifier = Modifier.testTag("save_semester_result_button")
                                     ) {
                                         Icon(Icons.Default.BookmarkBorder, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -385,22 +385,43 @@ fun CgpaCalculatorScreen(
                                 fontWeight = FontWeight.Bold
                             )
 
-                            OutlinedButton(
-                                onClick = {
-                                    courses.add(
-                                        CourseEntry(
-                                            id = System.currentTimeMillis(),
-                                            name = "Course ${courses.size + 1}",
-                                            credit = "3.0",
-                                            grade = "A"
-                                        )
-                                    )
-                                },
-                                modifier = Modifier.testTag("add_course_row_button")
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Add Course")
+                                if (courses.any { it.name.isNotBlank() || it.credit.isNotBlank() || it.grade.isNotBlank() } || prevCgpaText.isNotBlank() || prevCreditsText.isNotBlank()) {
+                                    TextButton(
+                                        onClick = {
+                                            courses.clear()
+                                            courses.add(CourseEntry(id = 1, name = "", credit = "", grade = ""))
+                                            courses.add(CourseEntry(id = 2, name = "", credit = "", grade = ""))
+                                            courses.add(CourseEntry(id = 3, name = "", credit = "", grade = ""))
+                                            prevCgpaText = ""
+                                            prevCreditsText = ""
+                                        },
+                                        modifier = Modifier.testTag("clear_cgpa_calculator_button")
+                                    ) {
+                                        Text("Reset")
+                                    }
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        courses.add(
+                                            CourseEntry(
+                                                id = System.currentTimeMillis(),
+                                                name = "",
+                                                credit = "",
+                                                grade = ""
+                                            )
+                                        )
+                                    },
+                                    modifier = Modifier.testTag("add_course_row_button")
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Add Course")
+                                }
                             }
                         }
                     }
@@ -409,6 +430,7 @@ fun CgpaCalculatorScreen(
                     itemsIndexed(courses, key = { _, item -> item.id }) { index, course ->
                         CourseRowCard(
                             course = course,
+                            index = index,
                             onUpdate = { updated ->
                                 courses[index] = updated
                             },
@@ -422,11 +444,9 @@ fun CgpaCalculatorScreen(
                     }
                 }
             } else if (selectedTab == 1) {
-                // Target CGPA Planner Tab
+                // Target CGPA Planner Tab - fresh clean start at 0.00
                 TargetCgpaPlannerView(
-                    gradeScale = gradeScale,
-                    currentCgpaSuggestion = if (cumulativeCgpa > 0.0) cumulativeCgpa else 3.20,
-                    completedCreditsSuggestion = if (prevCreditsText.toDoubleOrNull() != null) prevCreditsText.toDouble() else 60.0
+                    gradeScale = gradeScale
                 )
             } else {
                 // Semester History Tab
@@ -586,6 +606,7 @@ fun CgpaCalculatorScreen(
 @Composable
 fun CourseRowCard(
     course: CourseEntry,
+    index: Int = 0,
     onUpdate: (CourseEntry) -> Unit,
     onDelete: () -> Unit,
     canDelete: Boolean
@@ -610,7 +631,7 @@ fun CourseRowCard(
             OutlinedTextField(
                 value = course.name,
                 onValueChange = { onUpdate(course.copy(name = it)) },
-                placeholder = { Text("Course") },
+                placeholder = { Text("Course ${index + 1}") },
                 modifier = Modifier.weight(1.5f),
                 singleLine = true
             )
@@ -637,6 +658,7 @@ fun CourseRowCard(
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Gr") },
+                    placeholder = { Text("—") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = gradeDropdownExpanded) },
                     modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
                 )
@@ -649,7 +671,12 @@ fun CourseRowCard(
                         DropdownMenuItem(
                             text = { Text(grade, fontWeight = FontWeight.Bold) },
                             onClick = {
-                                onUpdate(course.copy(grade = grade))
+                                onUpdate(
+                                    course.copy(
+                                        grade = grade,
+                                        credit = if (course.credit.isBlank()) "3.0" else course.credit
+                                    )
+                                )
                                 gradeDropdownExpanded = false
                             }
                         )
@@ -677,29 +704,31 @@ fun CourseRowCard(
 @Composable
 fun TargetCgpaPlannerView(
     gradeScale: GradeScale,
-    currentCgpaSuggestion: Double,
-    completedCreditsSuggestion: Double,
+    currentCgpaSuggestion: Double = 0.0,
+    completedCreditsSuggestion: Double = 0.0,
     modifier: Modifier = Modifier
 ) {
     var currentCgpaText by remember {
-        mutableStateOf(if (currentCgpaSuggestion > 0.0) String.format(Locale.US, "%.2f", currentCgpaSuggestion) else "3.20")
+        mutableStateOf(if (currentCgpaSuggestion > 0.0) String.format(Locale.US, "%.2f", currentCgpaSuggestion) else "")
     }
     var completedCreditsText by remember {
-        mutableStateOf(if (completedCreditsSuggestion > 0.0) String.format(Locale.US, "%.1f", completedCreditsSuggestion) else "60.0")
+        mutableStateOf(if (completedCreditsSuggestion > 0.0) String.format(Locale.US, "%.1f", completedCreditsSuggestion) else "")
     }
-    var targetCgpaText by remember { mutableStateOf("3.60") }
-    var remainingCreditsText by remember { mutableStateOf("30.0") }
+    var targetCgpaText by remember { mutableStateOf("") }
+    var remainingCreditsText by remember { mutableStateOf("") }
 
-    val curCgpa = currentCgpaText.toDoubleOrNull() ?: 0.0
-    val compCredits = completedCreditsText.toDoubleOrNull() ?: 0.0
-    val targetCgpa = targetCgpaText.toDoubleOrNull() ?: 0.0
-    val remCredits = remainingCreditsText.toDoubleOrNull() ?: 0.0
+    val curCgpa = currentCgpaText.toDoubleOrNull()
+    val compCredits = completedCreditsText.toDoubleOrNull()
+    val targetCgpa = targetCgpaText.toDoubleOrNull()
+    val remCredits = remainingCreditsText.toDoubleOrNull()
 
-    val requiredGpa = remember(curCgpa, compCredits, targetCgpa, remCredits) {
-        if (remCredits > 0.0 && targetCgpa > 0.0) {
-            val totalCredits = compCredits + remCredits
-            val totalRequiredPoints = targetCgpa * totalCredits
-            val currentPoints = curCgpa * compCredits
+    val hasAllInputs = curCgpa != null && compCredits != null && targetCgpa != null && remCredits != null && remCredits > 0.0 && targetCgpa > 0.0
+
+    val requiredGpa = remember(curCgpa, compCredits, targetCgpa, remCredits, hasAllInputs) {
+        if (hasAllInputs) {
+            val totalCredits = compCredits!! + remCredits!!
+            val totalRequiredPoints = targetCgpa!! * totalCredits
+            val currentPoints = curCgpa!! * compCredits
             val requiredPoints = totalRequiredPoints - currentPoints
             requiredPoints / remCredits
         } else {
@@ -724,7 +753,7 @@ fun TargetCgpaPlannerView(
                     containerColor = when {
                         requiredGpa == null -> MaterialTheme.colorScheme.surfaceVariant
                         requiredGpa > gradeScale.aPlus -> MaterialTheme.colorScheme.errorContainer
-                        requiredGpa <= curCgpa -> MaterialTheme.colorScheme.tertiaryContainer
+                        requiredGpa <= (curCgpa ?: 0.0) -> MaterialTheme.colorScheme.tertiaryContainer
                         else -> MaterialTheme.colorScheme.primaryContainer
                     }
                 )
@@ -743,27 +772,27 @@ fun TargetCgpaPlannerView(
                         color = when {
                             requiredGpa == null -> MaterialTheme.colorScheme.onSurfaceVariant
                             requiredGpa > gradeScale.aPlus -> MaterialTheme.colorScheme.onErrorContainer
-                            requiredGpa <= curCgpa -> MaterialTheme.colorScheme.onTertiaryContainer
+                            requiredGpa <= (curCgpa ?: 0.0) -> MaterialTheme.colorScheme.onTertiaryContainer
                             else -> MaterialTheme.colorScheme.onPrimaryContainer
                         },
                         letterSpacing = 1.sp
                     )
 
                     Text(
-                        text = if (requiredGpa != null) String.format(Locale.US, "%.2f", requiredGpa.coerceAtLeast(0.0)) else "—",
+                        text = if (requiredGpa != null) String.format(Locale.US, "%.2f", requiredGpa.coerceAtLeast(0.0)) else "0.00",
                         style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.Black,
                         color = when {
                             requiredGpa == null -> MaterialTheme.colorScheme.onSurfaceVariant
                             requiredGpa > gradeScale.aPlus -> MaterialTheme.colorScheme.onErrorContainer
-                            requiredGpa <= curCgpa -> MaterialTheme.colorScheme.onTertiaryContainer
+                            requiredGpa <= (curCgpa ?: 0.0) -> MaterialTheme.colorScheme.onTertiaryContainer
                             else -> MaterialTheme.colorScheme.onPrimaryContainer
                         }
                     )
 
                     // Feasibility Message
                     val (statusText, adviceText) = when {
-                        requiredGpa == null -> Pair("Enter your academic details", "Fill in your credits and CGPA targets below.")
+                        requiredGpa == null -> Pair("Ready for Input", "Fill in your target CGPA and credit numbers below to calculate.")
                         requiredGpa > gradeScale.aPlus -> Pair(
                             "⚠️ Target Math Unattainable",
                             "Requires higher than maximum scale (${gradeScale.aPlus}). Increase remaining credits or adjust target CGPA."
@@ -772,13 +801,13 @@ fun TargetCgpaPlannerView(
                             "🎉 Goal Already Achieved!",
                             "Your completed credits already ensure a CGPA above your target."
                         )
-                        requiredGpa <= curCgpa -> Pair(
+                        requiredGpa <= (curCgpa ?: 0.0) -> Pair(
                             "✅ Easily Attainable",
                             "Maintaining your current pace or scoring ${String.format(Locale.US, "%.2f", requiredGpa)}+ will secure your goal."
                         )
                         requiredGpa in 3.60..gradeScale.aPlus -> Pair(
                             "🔥 High Performance Needed",
-                            "Aim for mostly A and A+ grades in your remaining ${String.format(Locale.US, "%.0f", remCredits)} credits."
+                            "Aim for mostly A and A+ grades in your remaining ${String.format(Locale.US, "%.0f", remCredits ?: 0.0)} credits."
                         )
                         else -> Pair(
                             "🎯 Realistic Goal",
@@ -823,11 +852,30 @@ fun TargetCgpaPlannerView(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text(
-                        text = "Academic Parameters",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Academic Parameters",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        if (targetCgpaText.isNotBlank() || currentCgpaText.isNotBlank() || completedCreditsText.isNotBlank() || remainingCreditsText.isNotBlank()) {
+                            TextButton(
+                                onClick = {
+                                    targetCgpaText = ""
+                                    currentCgpaText = ""
+                                    completedCreditsText = ""
+                                    remainingCreditsText = ""
+                                }
+                            ) {
+                                Text("Reset")
+                            }
+                        }
+                    }
 
                     // Target CGPA with quick chips
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -953,9 +1001,13 @@ fun TargetCgpaPlannerView(
                     horizontalArrangement = Arrangement.SpaceAround,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val compCr = compCredits ?: 0.0
+                    val remCr = remCredits ?: 0.0
+                    val totalCr = compCr + remCr
+
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = String.format(Locale.US, "%.1f", compCredits + remCredits),
+                            text = String.format(Locale.US, "%.1f", totalCr),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -975,7 +1027,7 @@ fun TargetCgpaPlannerView(
 
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = if (compCredits + remCredits > 0) String.format(Locale.US, "%.0f%%", (compCredits / (compCredits + remCredits)) * 100) else "0%",
+                            text = if (totalCr > 0.0) String.format(Locale.US, "%.0f%%", (compCr / totalCr) * 100) else "0%",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -996,7 +1048,7 @@ fun TargetCgpaPlannerView(
 
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = targetCgpaText,
+                            text = if (targetCgpaText.isNotBlank()) targetCgpaText else "0.00",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.secondary

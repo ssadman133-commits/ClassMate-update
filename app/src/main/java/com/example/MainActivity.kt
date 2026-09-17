@@ -12,6 +12,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -58,7 +61,9 @@ import com.example.ui.screens.TopicNotesScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.util.NotificationScheduler
 import com.example.util.AppThemeMode
+import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.RequestConfiguration
 
 class MainActivity : ComponentActivity() {
 
@@ -70,14 +75,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {
-            val playServicesAvailable = com.google.android.gms.common.GoogleApiAvailability.getInstance()
-                .isGooglePlayServicesAvailable(this) == com.google.android.gms.common.ConnectionResult.SUCCESS
-            if (playServicesAvailable) {
-                Thread {
-                    try {
-                        MobileAds.initialize(this) {}
-                    } catch (_: Throwable) {}
-                }.start()
+            val requestConfig = RequestConfiguration.Builder()
+                .setTestDeviceIds(listOf(AdRequest.DEVICE_ID_EMULATOR))
+                .build()
+            MobileAds.setRequestConfiguration(requestConfig)
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    MobileAds.initialize(this@MainActivity) {}
+                } catch (_: Throwable) {}
             }
         } catch (_: Throwable) {}
         enableEdgeToEdge()
