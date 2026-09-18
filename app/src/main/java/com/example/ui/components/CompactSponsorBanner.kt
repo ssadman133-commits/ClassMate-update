@@ -333,7 +333,7 @@ fun CompactSponsorCarousel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 5.dp, bottom = 2.dp),
+                    .padding(top = 6.dp, bottom = 4.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -341,15 +341,15 @@ fun CompactSponsorCarousel(
                     val isSelected = i == pagerState.currentPage
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = 3.dp)
+                            .padding(horizontal = 3.5.dp)
                             .size(
-                                width = if (isSelected) 18.dp else 6.dp,
-                                height = 6.dp
+                                width = if (isSelected) 22.dp else 7.dp,
+                                height = 7.dp
                             )
                             .clip(CircleShape)
                             .background(
                                 if (isSelected) Color(0xFF38BDF8)
-                                else Color(0x8894A3B8)
+                                else Color(0xAA94A3B8)
                             )
                             .clickable {
                                 coroutineScope.launch {

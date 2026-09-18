@@ -1,5 +1,6 @@
 package com.example
 
+import java.io.File
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -74,6 +75,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        try {
+            val codeCache = File(cacheDir, "WebView/Default/HTTP Cache/Code Cache")
+            val jsDir = File(codeCache, "js")
+            val wasmDir = File(codeCache, "wasm")
+            if (jsDir.exists() && !jsDir.isDirectory) jsDir.delete()
+            if (wasmDir.exists() && !wasmDir.isDirectory) wasmDir.delete()
+            if (!jsDir.exists()) jsDir.mkdirs()
+            if (!wasmDir.exists()) wasmDir.mkdirs()
+        } catch (_: Throwable) {}
         try {
             val requestConfig = RequestConfiguration.Builder()
                 .setTestDeviceIds(listOf(AdRequest.DEVICE_ID_EMULATOR))

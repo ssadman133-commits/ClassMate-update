@@ -76,9 +76,6 @@ fun isRunningOnEmulator(): Boolean {
             || product.contains("cuttlefish", ignoreCase = true)
             || device.contains("cuttlefish", ignoreCase = true)
             || hardware.contains("qemu", ignoreCase = true)
-            || product.contains("sdk", ignoreCase = true)
-            || product.contains("emulator", ignoreCase = true)
-            || !File("/dev/dri").exists()
 }
 
 private fun isDeviceOnline(context: Context): Boolean {

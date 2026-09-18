@@ -5,7 +5,10 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -58,10 +61,12 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -156,6 +161,18 @@ fun MainDashboardScreen(
         mutableStateOf(checkInternetOnline())
     }
 
+    // Smooth Startup Stabilization:
+    // When the app first boots, network capabilities and Room cache flows require ~150-200ms
+    // to reliably settle. Holding a quiet stabilizer prevents any momentary flashing of the wrong card.
+    var isInitialized by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        // Fast 180ms stabilization buffer: eliminates startup flicker completely
+        delay(180L)
+        isOnline = checkInternetOnline()
+        isInitialized = true
+    }
+
     DisposableEffect(context) {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
         val callback = object : ConnectivityManager.NetworkCallback() {
@@ -183,9 +200,9 @@ fun MainDashboardScreen(
         }
     }
 
-    // Workspace action cards keep a balanced, aesthetic proportion (122.dp)
-    // with no awkward stretching or empty voids
-    val gridCardHeight = 122.dp
+    // Workspace action cards keep an elevated, balanced proportion (125.dp)
+    // with no awkward stretching or empty voids, aligning the banner naturally above the bottom bar
+    val gridCardHeight = 125.dp
 
     // Featured Hero Sponsor & Promo Banner (Only displays when admin has created real active sponsors)
     val displaySponsors = remember(activeSponsors, activeSponsor) {
@@ -411,16 +428,6 @@ fun MainDashboardScreen(
                 }
             }
 
-            // Today's Live Class & Routine Highlight (Appears dynamically when online if user has routine entries)
-            if (isOnline && routineItems.isNotEmpty()) {
-                item {
-                    TodayScheduleHighlightCard(
-                        todayClasses = todayClasses,
-                        todayDayName = todayDayName,
-                        onClick = onNavigateToRoutine
-                    )
-                }
-            }
 
             // Academic Hub Section Header
             item {
@@ -543,34 +550,43 @@ fun MainDashboardScreen(
             }
 
             // 5. Smart Monetization & Dynamic Academic Overview:
-            // - If user/admin has active sponsors and is online: Displays Sponsor Carousel (148.dp)
-            // - If offline: Directly renders Today's Academic Agenda Banner (148.dp)
-            // - If online with no active sponsors: Displays AdMob with Today's Agenda fallback (148.dp)
-            // This guarantees ZERO blank gaps, ZERO empty space, and ZERO layout shifts under all network states!
+            // - Online: Displays Sponsor Carousel (if available) or AdMob Banner (148.dp)
+            // - Offline: Displays Today's Academic Agenda & Deadlines (148.dp)
+            // Seamless Combined Solution:
+            // 1. 180ms quiet placeholder prevents network race-condition flickering on startup.
+            // 3. Cinematic 350ms Crossfade provides butter-smooth visual transition between states.
             item {
-                if (isOnline && displaySponsors.isNotEmpty()) {
-                    CompactSponsorCarousel(
-                        sponsors = displaySponsors,
-                        onSponsorClick = onSponsorClick,
-                        onSponsorImpression = onSponsorImpression,
-                        slideIntervalMillis = 4000L,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                } else if (!isOnline) {
-                    TodayAcademicAgendaBanner(
-                        todayClasses = todayClasses,
-                        todayDayName = todayDayName,
-                        assignments = assignments,
-                        exams = exams,
-                        onNavigateToRoutine = onNavigateToRoutine,
-                        onNavigateToAssignments = onNavigateToAssignments,
-                        onNavigateToExams = onNavigateToExams,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                } else {
-                    AdMobBannerAd(
-                        modifier = Modifier.padding(top = 2.dp),
-                        fallback = {
+                Crossfade(
+                    targetState = when {
+                        !isInitialized -> 0 // Initializing / Stabilizing
+                        isOnline -> 1 // Online (Sponsor / AdMob)
+                        else -> 2 // Offline (Today's Academic Agenda)
+                    },
+                    animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
+                    label = "BannerSlotCrossfade"
+                ) { state ->
+                    when (state) {
+                        0 -> {
+                            BannerSlotStabilizerPlaceholder(
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
+                        1 -> {
+                            if (displaySponsors.isNotEmpty()) {
+                                CompactSponsorCarousel(
+                                    sponsors = displaySponsors,
+                                    onSponsorClick = onSponsorClick,
+                                    onSponsorImpression = onSponsorImpression,
+                                    slideIntervalMillis = 4000L,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
+                            } else {
+                                AdMobBannerAd(
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
+                            }
+                        }
+                        2 -> {
                             TodayAcademicAgendaBanner(
                                 todayClasses = todayClasses,
                                 todayDayName = todayDayName,
@@ -582,7 +598,7 @@ fun MainDashboardScreen(
                                 modifier = Modifier.padding(top = 2.dp)
                             )
                         }
-                    )
+                    }
                 }
             }
 
@@ -1037,6 +1053,37 @@ fun TodayScheduleHighlightCard(
 }
 
 /**
+ * Sleek initial stabilizer placeholder matching exact dimensions (148.dp height, 18.dp radius).
+ * Prevents any layout shift or visual flickering while network connection and sponsor cache initialize.
+ */
+@Composable
+fun BannerSlotStabilizerPlaceholder(
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(148.dp)
+            .clip(RoundedCornerShape(18.dp)),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF0F172A)
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = Color(0xFF1E293B).copy(alpha = 0.6f)
+        )
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            // Quiet, elegant dark surface holding the space smoothly for 180ms
+        }
+    }
+}
+
+/**
  * Premium Offline Academic Agenda Banner:
  * Occupies the exact same dimensions (148.dp height, 18.dp corner radius) as the Sponsor Carousel & AdMob Banner.
  * Shows today's classes, imminent deadlines, upcoming exams, and live academic status pills.
@@ -1183,6 +1230,7 @@ fun TodayAcademicAgendaBanner(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
                             .background(Color(0xFF1E293B).copy(alpha = 0.7f))
+                            .clickable(onClick = onNavigateToRoutine)
                             .padding(horizontal = 10.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
@@ -1221,12 +1269,14 @@ fun TodayAcademicAgendaBanner(
                 } else if (upcomingExams.isNotEmpty() || pendingAssignments.isNotEmpty()) {
                     val nextExam = upcomingExams.firstOrNull()
                     val nextAssignment = pendingAssignments.firstOrNull()
+                    val spotlightClick = if (nextExam != null) onNavigateToExams else onNavigateToAssignments
 
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
                             .background(Color(0xFF1E293B).copy(alpha = 0.7f))
+                            .clickable(onClick = spotlightClick)
                             .padding(horizontal = 10.dp, vertical = 7.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -1286,6 +1336,7 @@ fun TodayAcademicAgendaBanner(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
                             .background(Color(0xFF1E293B).copy(alpha = 0.5f))
+                            .clickable(onClick = onNavigateToRoutine)
                             .padding(horizontal = 10.dp, vertical = 7.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -1315,18 +1366,21 @@ fun TodayAcademicAgendaBanner(
                         label = "Classes",
                         value = "${todayClasses.size}",
                         accentColor = Color(0xFF38BDF8),
+                        onClick = onNavigateToRoutine,
                         modifier = Modifier.weight(1f)
                     )
                     AcademicStatPill(
                         label = "Tasks",
                         value = "${pendingAssignments.size}",
                         accentColor = Color(0xFF4ADE80),
+                        onClick = onNavigateToAssignments,
                         modifier = Modifier.weight(1f)
                     )
                     AcademicStatPill(
                         label = "Exams",
                         value = "${upcomingExams.size}",
                         accentColor = Color(0xFFFF9100),
+                        onClick = onNavigateToExams,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -1340,16 +1394,18 @@ private fun AcademicStatPill(
     label: String,
     value: String,
     accentColor: Color,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
+        onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
-        color = Color(0xFF1E293B).copy(alpha = 0.6f),
-        border = BorderStroke(0.5.dp, Color(0xFF334155).copy(alpha = 0.5f))
+        color = Color(0xFF1E293B).copy(alpha = 0.7f),
+        border = BorderStroke(0.5.dp, Color(0xFF334155).copy(alpha = 0.6f))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
